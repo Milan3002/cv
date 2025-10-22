@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sudoku — Bootstrap</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f6f7fb; }
+    .sudoku-card { max-width: 980px; margin: 22px auto; }
+    .board { display: grid; grid-template-columns: repeat(9, 1fr); border: 2px solid #212529; }
+    .cell {
+      position: relative;
+      width: 100%; aspect-ratio: 1 / 1; border: 1px solid #ced4da;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff;
+    }
+    .cell input {
+      width: 100%; height: 100%; border: 0; text-align: center; font-size: 1.35rem;
+      font-weight: 600; outline: none; background: transparent;
+    }
+    .cell.given { background: #f1f3f5; }
+    .cell.conflict { background: #ffe3e3; }
+    .cell.selected { box-shadow: inset 0 0 0 2px #0d6efd; }
+    .cell.highlight { background: #e7f1ff; }
+    .cell:nth-child(3n) { border-right: 2px solid #212529; }
+    .row-3, .row-6 { border-bottom: 2px solid #212529; }
+    .notes { position: absolute; inset: 0; font-size: .6rem; color: #6c757d; display: grid; grid-template-columns: repeat(3, 1fr); align-content: center; pointer-events: none; }
+    .note { text-align: center; }
+    @media (min-width: 992px) { .cell input { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card shadow sudoku-card">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+          <h1 class="h4 m-0">Sudoku</h1>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="btn-group" role="group" aria-label="Difficulty">
+              <input type="radio" class="btn-check" name="difficulty" id="easy" autocomplete="off" checked>
+              <label class="btn btn-outline-secondary" for="easy">Easy</label>
+              <input type="radio" class="btn-check" name="difficulty" id="medium" autocomplete="off">
+              <label class="btn btn-outline-secondary" for="medium">Medium</label>
+              <input type="radio" class="btn-check" name="difficulty" id="hard" autocomplete="off">
+              <label class="btn btn-outline-secondary" for="hard">Hard</label>
+            </div>
+            <button class="btn btn-primary" id="newGameBtn">New game</button>
+            <button class="btn btn-outline-primary" id="hintBtn">Hint</button>
+            <button class="btn btn-outline-success" id="checkBtn">Check</button>
+            <button class="btn btn-outline-danger" id="solveBtn">Solve</button>
+            <button class="btn btn-outline-secondary" id="clearBtn">Clear</button>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-12 col-lg-7">
+            <div id="board" class="board rounded-3 overflow-hidden"></div>
+          </div>
+          <div class="col-12 col-lg-5">
+            <div class="p-3 bg-light rounded-3 h-100">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <span class="badge bg-secondary">Timer</span>
+                  <span id="timer" class="fw-semibold ms-1">00:00</span>
+                </div>
+                <div>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="notesToggle">
+                    <label class="form-check-label" for="notesToggle">Notes mode</label>
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-muted small mb-3">
+                Type numbers 1–9. In <strong>Notes</strong> mode, numbers add pencil marks to a cell. Use <kbd>Backspace</kbd> to clear. Click a cell to select it. Conflicts are highlighted automatically.
+              </p>
+
+              <div class="d-grid gap-2">
+                <button class="btn btn-outline-dark" id="undoBtn" disabled>Undo</button>
+                <button class="btn btn-outline-dark" id="redoBtn" disabled>Redo</button>
+                <button class="btn btn-outline-dark" id="eraseBtn">Erase Cell</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Utilities ---
+    const deepCopy = (b) => b.map(r => r.slice());
+    const idx = (r,c) => r*9+c;
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    function findEmpty(board){
+      for(let r=0;r<9;r++){
+        for(let c=0;c<9;c++){
+          if(board[r][c]===0) return [r,c];
+        }
+      }
+      return null;
+    }
+
+    function isValid(board, r, c, val){
+      // Row & Col
+      for(let i=0;i<9;i++){
+        if(board[r][i]===val) return false;
+        if(board[i][c]===val) return false;
+      }
+      // Box
+      const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+      for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(board[br+i][bc+j]===val) return false;
+      return true;
+    }
+
+    function solve(board){
+      const pos=findEmpty(board);
+      if(!pos) return true;
+      const [r,c]=pos;
+      const nums=shuffle([1,2,3,4,5,6,7,8,9]);
+      for(const n of nums){
+        if(isValid(board,r,c,n)){
+          board[r][c]=n;
+          if(solve(board)) return true;
+          board[r][c]=0;
+        }
+      }
+      return false;
+    }
+
+    function solveDeterministic(board){
+      // same as solve but without shuffle (for counting solutions)
+      const pos=findEmpty(board);
+      if(!pos) return true;
+      const [r,c]=pos;
+      for(let n=1;n<=9;n++){
+        if(isValid(board,r,c,n)){
+          board[r][c]=n;
+          if(solveDeterministic(board)) return true;
+          board[r][c]=0;
+        }
+      }
+      return false;
+    }
+
+    function countSolutions(board, limit=2){
+      let count=0;
+      function helper(){
+        if(count>=limit) return; // early exit
+        const pos=findEmpty(board);
+        if(!pos){ count++; return; }
+        const [r,c]=pos;
+        for(let n=1;n<=9;n++){
+          if(isValid(board,r,c,n)){
+            board[r][c]=n;
+            helper();
+            board[r][c]=0;
+            if(count>=limit) return;
+          }
+        }
+      }
+      helper();
+      return count;
+    }
+
+    function generateComplete(){
+      const board=Array.from({length:9},()=>Array(9).fill(0));
+      solve(board);
+      return board;
+    }
+
+    function removeCellsForDifficulty(full, difficulty){
+      // difficulty -> remaining clues
+      const clues = difficulty==='easy' ? 40 : difficulty==='medium' ? 32 : 26;
+      const puzzle=deepCopy(full);
+      const positions=[...Array(81).keys()];
+      shuffle(positions);
+      let removed=0;
+      for(const p of positions){
+        const r=Math.floor(p/9), c=p%9;
+        const backup=puzzle[r][c];
+        if(backup===0) continue;
+        puzzle[r][c]=0;
+        // Check uniqueness by counting solutions (<=1)
+        const tmp=deepCopy(puzzle);
+        if(countSolutions(tmp,2)!==1){
+          puzzle[r][c]=backup; // revert to keep unique
+        } else {
+          removed++;
+          const currentClues = 81-removed;
+          if(currentClues<=clues) break;
+        }
+      }
+      return puzzle;
+    }
+
+    // --- State ---
+    let puzzle=[], solution=[], fixed=new Set();
+    let selectedIndex=null; // 0..80
+    let notesMode=false;
+    let history=[]; let redoStack=[];
+    let timerInterval=null; let seconds=0;
+
+    // --- DOM ---
+    const boardEl=document.getElementById('board');
+    const timerEl=document.getElementById('timer');
+    const notesToggle=document.getElementById('notesToggle');
+
+    function formatTime(s){
+      const m=Math.floor(s/60).toString().padStart(2,'0');
+      const r=(s%60).toString().padStart(2,'0');
+      return `${m}:${r}`;
+    }
+
+    function startTimer(){
+      clearInterval(timerInterval);
+      timerInterval=setInterval(()=>{ seconds++; timerEl.textContent=formatTime(seconds); },1000);
+    }
+
+    function stopTimer(){ clearInterval(timerInterval); }
+
+    function saveState(){
+      const state={ puzzle, solution, fixed:[...fixed], values: readBoardValues(), notes: readNotes(), seconds };
+      localStorage.setItem('sudokuState', JSON.stringify(state));
+    }
+
+    function loadState(){
+      const raw=localStorage.getItem('sudokuState');
+      if(!raw) return false;
+      try {
+        const s=JSON.parse(raw);
+        puzzle=s.puzzle; solution=s.solution; fixed=new Set(s.fixed);
+        renderBoard();
+        applyValues(s.values);
+        applyNotes(s.notes);
+        seconds=s.seconds||0; timerEl.textContent=formatTime(seconds); startTimer();
+        return true;
+      } catch(e){ console.warn('Failed to load save', e); return false; }
+    }
+
+    function pushHistory(){
+      history.push(readBoardValues());
+      if(history.length>200) history.shift();
+      redoStack=[];
+    }
+
+    function undo(){
+      if(history.length===0) return;
+      redoStack.push(readBoardValues());
+      const prev=history.pop();
+      applyValues(prev);
+      refreshConflicts();
+      updateUndoRedoButtons();
+    }
+
+    function redo(){
+      if(redoStack.length===0) return;
+      history.push(readBoardValues());
+      const next=redoStack.pop();
+      applyValues(next);
+      refreshConflicts();
+      updateUndoRedoButtons();
+    }
+
+    function updateUndoRedoButtons(){
+      document.getElementById('undoBtn').disabled = history.length===0;
+      document.getElementById('redoBtn').disabled = redoStack.length===0;
+    }
+
+    function createCell(r,c,val){
+      const div=document.createElement('div');
+      div.className='cell'+(r===2||r===5?' row-3':'')+(r===5?' row-6':'');
+      const input=document.createElement('input');
+      input.setAttribute('inputmode','numeric');
+      input.setAttribute('maxlength','1');
+      input.setAttribute('aria-label',`Row ${r+1} Column ${c+1}`);
+      input.dataset.row=r; input.dataset.col=c; input.dataset.index=idx(r,c);
+      if(val){ input.value=val; div.classList.add('given'); input.disabled=true; fixed.add(idx(r,c)); }
+
+      const notesDiv=document.createElement('div');
+      notesDiv.className='notes';
+      for(let n=1;n<=9;n++){
+        const s=document.createElement('div'); s.className='note'; s.textContent=''; s.dataset.n=n; notesDiv.appendChild(s);
+      }
+
+      div.appendChild(input);
+      div.appendChild(notesDiv);
+
+      div.addEventListener('click',()=>selectCell(idx(r,c)));
+      input.addEventListener('beforeinput', e=>{
+        if(fixed.has(idx(r,c))) { e.preventDefault(); return; }
+        if(e.data && !/[1-9]/.test(e.data)) e.preventDefault();
+      });
+      input.addEventListener('input', e=>{
+        if(notesMode){
+          // revert actual value; toggle note instead
+          const ch=(e.data||'').trim();
+          e.target.value='';
+          if(/[1-9]/.test(ch)) toggleNote(div, parseInt(ch,10));
+          return;
+        }
+        // normal mode
+        const v=e.target.value.replace(/[^1-9]/g,'');
+        e.target.value=v;
+        refreshConflicts();
+        pushHistory();
+        saveState();
+      });
+      input.addEventListener('keydown', e=>{
+        if(e.key==='Backspace' || e.key==='Delete'){
+          if(notesMode){ clearNotes(div); e.preventDefault(); }
+          else if(!fixed.has(idx(r,c))) { e.target.value=''; refreshConflicts(); pushHistory(); saveState(); }
+        }
+        // Arrow navigation
+        const i=parseInt(input.dataset.index,10);
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+          e.preventDefault();
+          const d = e.key==='ArrowUp'?-9: e.key==='ArrowDown'?9: e.key==='ArrowLeft'?-1:1;
+          const ni=i+d; if(ni>=0 && ni<81) selectCell(ni,true);
+        }
+      });
+      return div;
+    }
+
+    function toggleNote(cellDiv, n){
+      const notes=cellDiv.querySelectorAll('.note');
+      const el=notes[n-1];
+      el.textContent = el.textContent? '' : n;
+      pushHistory(); saveState();
+    }
+
+    function clearNotes(cellDiv){
+      cellDiv.querySelectorAll('.note').forEach(el=>el.textContent='');
+      saveState();
+    }
+
+    function readNotes(){
+      const notes=[];
+      boardEl.querySelectorAll('.cell').forEach(cell=>{
+        const arr=[]; cell.querySelectorAll('.note').forEach((el,i)=>{ if(el.textContent) arr.push(i+1); });
+        notes.push(arr);
+      });
+      return notes;
+    }
+
+    function applyNotes(notes){
+      if(!notes) return;
+      boardEl.querySelectorAll('.cell').forEach((cell,i)=>{
+        const arr=notes[i]||[];
+        cell.querySelectorAll('.note').forEach((el,idx)=>{ el.textContent = arr.includes(idx+1)? String(idx+1):''; });
+      });
+    }
+
+    function selectCell(i, focusInput=false){
+      selectedIndex=i;
+      boardEl.querySelectorAll('.cell').forEach((cell,ci)=>{
+        cell.classList.toggle('selected', ci===i);
+      });
+      if(focusInput){
+        const input=boardEl.querySelector(`input[data-index="${i}"]`);
+        input && input.focus();
+      }
+      highlightPeers(i);
+    }
+
+    function highlightPeers(i){
+      const r=Math.floor(i/9), c=i%9;
+      boardEl.querySelectorAll('.cell').forEach((cell,ci)=>{
+        const rr=Math.floor(ci/9), cc=ci%9;
+        const sameRow = rr===r; const sameCol = cc===c;
+        const sameBox = Math.floor(rr/3)===Math.floor(r/3) && Math.floor(cc/3)===Math.floor(c/3);
+        cell.classList.toggle('highlight', sameRow||sameCol||sameBox);
+      });
+    }
+
+    function readBoardValues(){
+      const vals=[]; for(let r=0;r<9;r++){ vals[r]=[]; for(let c=0;c<9;c++){
+        const input=boardEl.querySelector(`input[data-row="${r}"][data-col="${c}"]`);
+        vals[r][c]= input.value? parseInt(input.value,10):0;
+      }} return vals;
+    }
+
+    function applyValues(vals){
+      for(let r=0;r<9;r++){
+        for(let c=0;c<9;c++){
+          const input=boardEl.querySelector(`input[data-row="${r}"][data-col="${c}"]`);
+          if(!fixed.has(idx(r,c))) input.value = vals[r][c]||'';
+        }
+      }
+    }
+
+    function refreshConflicts(){
+      const vals=readBoardValues();
+      boardEl.querySelectorAll('.cell').forEach(cell=>cell.classList.remove('conflict'));
+      // rows
+      for(let r=0;r<9;r++){
+        const seen={};
+        for(let c=0;c<9;c++){
+          const v=vals[r][c]; if(!v) continue;
+          if(seen[v]!==undefined){ markConflict(r,seen[v]); markConflict(r,c); }
+          else seen[v]=c;
+        }
+      }
+      // cols
+      for(let c=0;c<9;c++){
+        const seen={};
+        for(let r=0;r<9;r++){
+          const v=vals[r][c]; if(!v) continue;
+          if(seen[v]!==undefined){ markConflict(seen[v],c); markConflict(r,c); }
+          else seen[v]=r;
+        }
+      }
+      // boxes
+      for(let br=0;br<3;br++) for(let bc=0;bc<3;bc++){
+        const seen={};
+        for(let i=0;i<3;i++) for(let j=0;j<3;j++){
+          const r=br*3+i, c=bc*3+j; const v=vals[r][c]; if(!v) continue;
+          if(seen[v]){ const [rr,cc]=seen[v]; markConflict(rr,cc); markConflict(r,c); }
+          else seen[v]=[r,c];
+        }
+      }
+    }
+
+    function markConflict(r,c){
+      const cell=boardEl.children[idx(r,c)];
+      cell.classList.add('conflict');
+    }
+
+    function renderBoard(){
+      boardEl.innerHTML=''; fixed.clear();
+      for(let r=0;r<9;r++){
+        for(let c=0;c<9;c++){
+          const cell=createCell(r,c,puzzle[r][c]);
+          boardEl.appendChild(cell);
+        }
+      }
+      selectCell(0);
+      refreshConflicts();
+      updateUndoRedoButtons();
+    }
+
+    function newGame(difficulty='easy'){
+      // Generate fresh puzzle
+      const full=generateComplete();
+      const diffKey = difficulty;
+      const puz=removeCellsForDifficulty(full, diffKey);
+      puzzle=puz; solution=deepCopy(full);
+      seconds=0; timerEl.textContent=formatTime(seconds); startTimer();
+      history=[]; redoStack=[];
+      renderBoard();
+      saveState();
+    }
+
+    function currentDifficulty(){
+      if(document.getElementById('hard').checked) return 'hard';
+      if(document.getElementById('medium').checked) return 'medium';
+      return 'easy';
+    }
+
+    function giveHint(){
+      // find an empty cell and fill from solution
+      const vals=readBoardValues();
+      const empties=[]; for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(!vals[r][c]) empties.push([r,c]);
+      if(empties.length===0) return;
+      const [r,c]=empties[Math.floor(Math.random()*empties.length)];
+      const input=boardEl.querySelector(`input[data-row="${r}"][data-col="${c}"]`);
+      input.value=solution[r][c];
+      pushHistory(); refreshConflicts(); saveState();
+    }
+
+    function checkProgress(){
+      const vals=readBoardValues();
+      let wrong=0; let empty=0;
+      for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+        const v=vals[r][c];
+        if(!v) { empty++; continue; }
+        if(v!==solution[r][c]) wrong++;
+      }
+      if(wrong===0 && empty===0){
+        stopTimer();
+        bootstrap.Toast.getOrCreateInstance(document.getElementById('toastWin')).show();
+      } else {
+        const toast=document.getElementById('toastCheck');
+        toast.querySelector('.toast-body').textContent = `${wrong} wrong, ${empty} empty.`;
+        bootstrap.Toast.getOrCreateInstance(toast).show();
+      }
+    }
+
+    function solvePuzzle(){
+      for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+        const input=boardEl.querySelector(`input[data-row="${r}"][data-col="${c}"]`);
+        if(!fixed.has(idx(r,c))) input.value=solution[r][c];
+      }
+      refreshConflicts(); saveState(); stopTimer();
+    }
+
+    function clearCell(){
+      if(selectedIndex==null) return;
+      const input=boardEl.querySelector(`input[data-index="${selectedIndex}"]`);
+      if(input && !input.disabled){ input.value=''; refreshConflicts(); pushHistory(); saveState(); }
+    }
+
+    // --- Event wiring ---
+    document.getElementById('newGameBtn').addEventListener('click',()=>newGame(currentDifficulty()));
+    document.getElementById('hintBtn').addEventListener('click',giveHint);
+    document.getElementById('checkBtn').addEventListener('click',checkProgress);
+    document.getElementById('solveBtn').addEventListener('click',solvePuzzle);
+    document.getElementById('clearBtn').addEventListener('click',()=>{ boardEl.querySelectorAll('input').forEach(inp=>{ if(!inp.disabled) inp.value=''; }); refreshConflicts(); pushHistory(); saveState(); });
+    document.getElementById('eraseBtn').addEventListener('click',clearCell);
+    document.getElementById('undoBtn').addEventListener('click',undo);
+    document.getElementById('redoBtn').addEventListener('click',redo);
+
+    notesToggle.addEventListener('change',()=>{ notesMode=notesToggle.checked; });
+
+    // Keyboard shortcuts for digits into selected cell (works in notes mode too)
+    document.addEventListener('keydown', (e)=>{
+      if(selectedIndex==null) return;
+      if(e.target.tagName==='INPUT') return; // handled by input events
+      if(/[1-9]/.test(e.key)){
+        const input=boardEl.querySelector(`input[data-index="${selectedIndex}"]`);
+        if(!input || input.disabled) return;
+        if(notesMode){ toggleNote(input.parentElement, parseInt(e.key,10)); }
+        else { input.value=e.key; refreshConflicts(); pushHistory(); saveState(); }
+      } else if(e.key==='Backspace' || e.key==='Delete'){
+        clearCell();
+      }
+    });
+
+    // --- Toasts (feedback) ---
+    const toastContainer = document.createElement('div');
+    toastContainer.className='toast-container position-fixed top-0 end-0 p-3';
+    toastContainer.innerHTML=`
+      <div id="toastCheck" class="toast align-items-center" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">Checked.</div>
+          <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+      <div id="toastWin" class="toast align-items-center text-bg-success" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">🎉 Completed! Great job.</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(toastContainer);
+
+    // --- Boot ---
+    (function init(){
+      const restored = loadState();
+      if(!restored){ newGame('easy'); }
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
