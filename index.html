@@ -1,13 +1,147 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="cs">
 <head>
-  <meta charset="utf-8">
-  <title>Web rozcestnik</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milan Mityska</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --accent: #38bdf8;
+            --text: #f1f5f9;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text);
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .profile-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            border-radius: 18px;
+            margin: 0 auto 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        h1 { margin: 0; font-size: 1.6rem; }
+        .tagline { opacity: 0.5; font-size: 0.8rem; margin-bottom: 30px; letter-spacing: 1px; }
+
+        h2 { font-size: 0.9rem; text-transform: uppercase; opacity: 0.7; margin: 25px 0 15px; letter-spacing: 2px; text-align: left; }
+
+        .grid { display: flex; flex-direction: column; gap: 12px; }
+
+        .item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 15px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.2s ease;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .item-title { font-weight: bold; font-size: 1rem; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+        .item-desc { font-size: 0.8rem; opacity: 0.6; }
+        .arrow { font-size: 1.2rem; color: var(--accent); }
+
+        .btn-contact {
+            margin-top: 30px;
+            display: inline-block;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 25px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .btn-contact:hover { background: var(--accent); color: var(--bg-color); }
+
+        .footer { margin-top: 30px; font-size: 0.7rem; opacity: 0.3; }
+    </style>
 </head>
 <body>
-  <h1>Vítej na mém webu</h1>
-  <ul>
-    <li><a href="/sudoku/">Sudoku</a></li>
-  </ul>
+
+    <div class="card">
+        <div class="profile-icon">MM</div>
+        <h1>Milan Mityska</h1>
+        <div class="tagline">Personal Space</div>
+
+        <h2>Projekty</h2>
+        <div class="grid">
+            <a href="https://meetwine.lovable.app" target="_blank" class="item">
+                <div class="item-title">MeetWine <span class="arrow">→</span></div>
+                <div class="item-desc">Aplikace pro milovníky vína a setkávání.</div>
+            </a>
+            <a href="https://mityska.cz/sudoku/" class="item">
+                <div class="item-title">Sudoku <span class="arrow">→</span></div>
+                <div class="item-desc">Klasická logická hra v mém podání.</div>
+            </a>
+        </div>
+
+        <h2>Kde mě najdete</h2>
+        <div class="grid">
+            <a href="https://www.linkedin.com/in/milanmityska/" target="_blank" class="item">
+                <div class="item-title">LinkedIn <span class="arrow">→</span></div>
+            </a>
+        </div>
+
+        <!-- Tady je to "bezpečné" tlačítko -->
+        <button id="mailBtn" class="btn-contact">Napsat e-mail</button>
+
+        <div class="footer">
+            &copy; 2026 mityska.cz
+        </div>
+    </div>
+
+    <script>
+        // Ochrana před spamboty
+        document.getElementById('mailBtn').addEventListener('click', function() {
+            const user = "me"; // Tady si změň jméno, pokud máš jiný mail
+            const domain = "mityska.cz";
+            window.location.href = "mailto:" + user + "@" + domain;
+        });
+    </script>
+
 </body>
 </html>
