@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Solar System Simulation</title>
-  <!-- Three.js from CDN (robust standalone browser build) -->
+  <title>Interactive Solar System & Moons Simulation</title>
+  <!-- Three.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <!-- OrbitControls -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
     :root {
-      --bg-glass: rgba(13, 17, 27, 0.78);
-      --border-glass: rgba(255, 255, 255, 0.12);
+      --bg-glass: rgba(13, 17, 27, 0.82);
+      --border-glass: rgba(255, 255, 255, 0.14);
       --accent: #00d2ff;
-      --accent-glow: rgba(0, 210, 255, 0.35);
+      --accent-glow: rgba(0, 210, 255, 0.4);
+      --moon-accent: #a855f7;
+      --moon-glow: rgba(168, 85, 247, 0.4);
       --text-main: #eef2f7;
       --text-dim: #94a3b8;
       --font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
@@ -59,7 +61,7 @@
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      background: linear-gradient(90deg, #ffffff, #00d2ff, #9945ff);
+      background: linear-gradient(90deg, #ffffff, #00d2ff, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-shadow: 0 0 24px rgba(0, 210, 255, 0.4);
@@ -80,7 +82,7 @@
       z-index: 10;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       background: var(--bg-glass);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -120,6 +122,13 @@
       box-shadow: 0 0 14px var(--accent-glow);
     }
 
+    .btn.moon-btn.active {
+      background: var(--moon-accent);
+      color: #ffffff;
+      border-color: var(--moon-accent);
+      box-shadow: 0 0 14px var(--moon-glow);
+    }
+
     .speed-slider-wrap {
       display: flex;
       align-items: center;
@@ -132,7 +141,7 @@
 
     .speed-slider-wrap input[type="range"] {
       -webkit-appearance: none;
-      width: 80px;
+      width: 75px;
       height: 4px;
       background: rgba(255, 255, 255, 0.2);
       border-radius: 2px;
@@ -211,20 +220,27 @@
       box-shadow: 0 0 10px var(--accent-glow);
     }
 
+    .nav-chip.selected-moon {
+      color: #fff;
+      background: rgba(168, 85, 247, 0.25);
+      border-color: var(--moon-accent);
+      box-shadow: 0 0 10px var(--moon-glow);
+    }
+
     /* Info Sidebar Card */
     .info-card {
       position: absolute;
       top: 80px;
       left: 24px;
-      width: 360px;
-      max-height: calc(100vh - 130px);
+      width: 370px;
+      max-height: calc(100vh - 125px);
       z-index: 10;
       background: var(--bg-glass);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--border-glass);
       border-radius: 18px;
-      padding: 24px;
+      padding: 22px;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75);
       overflow-y: auto;
       transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
@@ -233,7 +249,7 @@
     }
 
     .info-card.collapsed {
-      transform: translateX(-400px);
+      transform: translateX(-420px);
       opacity: 0;
       pointer-events: none;
     }
@@ -261,6 +277,10 @@
       letter-spacing: 1px;
       color: var(--accent);
       font-weight: 700;
+    }
+
+    .card-header.is-moon .title-badge {
+      color: var(--moon-accent);
     }
 
     .card-header h2 {
@@ -294,7 +314,82 @@
       font-size: 13px;
       line-height: 1.55;
       color: #cbd5e1;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
+    }
+
+    /* Planet's Moons Ribbon inside Card */
+    .moons-sublist-container {
+      margin-bottom: 16px;
+      background: rgba(168, 85, 247, 0.08);
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .moons-sublist-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #d8b4fe;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .moons-pill-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .moon-pill {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .moon-pill:hover {
+      background: rgba(168, 85, 247, 0.3);
+      border-color: var(--moon-accent);
+      color: #fff;
+    }
+
+    .moon-pill.active {
+      background: var(--moon-accent);
+      border-color: var(--moon-accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Parent Planet Link when viewing Moon */
+    .parent-planet-banner {
+      margin-bottom: 14px;
+      background: rgba(0, 210, 255, 0.08);
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .parent-planet-banner a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .parent-planet-banner a:hover {
+      text-decoration: underline;
     }
 
     /* Key Metrics Grid */
@@ -302,7 +397,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .metric-box {
@@ -321,7 +416,7 @@
     }
 
     .metric-value {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: #fff;
     }
@@ -330,6 +425,10 @@
       font-size: 10px;
       color: var(--accent);
       margin-top: 2px;
+    }
+
+    .is-moon .metric-sub {
+      color: #d8b4fe;
     }
 
     /* Fun Facts Section */
@@ -341,6 +440,11 @@
       margin-bottom: 16px;
     }
 
+    .is-moon .facts-section {
+      background: rgba(168, 85, 247, 0.06);
+      border-left-color: var(--moon-accent);
+    }
+
     .facts-title {
       font-size: 12px;
       font-weight: 700;
@@ -350,6 +454,10 @@
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+
+    .is-moon .facts-title {
+      color: #d8b4fe;
     }
 
     .facts-list {
@@ -405,7 +513,7 @@
     #hover-tooltip {
       position: absolute;
       z-index: 20;
-      background: rgba(9, 12, 19, 0.9);
+      background: rgba(9, 12, 19, 0.92);
       border: 1px solid var(--accent);
       border-radius: 8px;
       padding: 6px 12px;
@@ -419,7 +527,12 @@
       white-space: nowrap;
     }
 
-    /* Mobile / Small Screens adjustments */
+    #hover-tooltip.moon-tooltip {
+      border-color: var(--moon-accent);
+      box-shadow: 0 4px 14px rgba(168, 85, 247, 0.4);
+    }
+
+    /* Mobile adjustments */
     @media (max-width: 768px) {
       .top-header h1 { font-size: 18px; }
       .sim-controls { top: auto; bottom: 84px; right: 16px; padding: 6px 12px; }
@@ -437,7 +550,7 @@
   <!-- Header -->
   <div class="top-header">
     <h1>Solar System 3D</h1>
-    <p>Realistic & Interactive Astronomical Simulation</p>
+    <p>Interactive Planets & Moons Simulation</p>
   </div>
 
   <!-- Simulation Control Bar -->
@@ -445,8 +558,11 @@
     <button class="btn" id="btn-play-pause" title="Play or Pause simulation">
       <span id="play-pause-icon">⏸</span> <span id="play-pause-text">Pause</span>
     </button>
-    <button class="btn" id="btn-toggle-orbits" title="Show or hide orbital traces">
+    <button class="btn active" id="btn-toggle-orbits" title="Show or hide orbital traces">
       <span>⭕</span> <span>Orbits</span>
+    </button>
+    <button class="btn moon-btn active" id="btn-toggle-moons" title="Show or hide moons and moon orbits">
+      <span>🌕</span> <span>Moons</span>
     </button>
     <button class="btn" id="btn-toggle-scale" title="Toggle between true realistic vs enhanced visual scale">
       <span>📐</span> <span id="scale-mode-text">Enhanced Scale</span>
@@ -466,7 +582,7 @@
 
   <!-- Detailed Astronomical Info Card -->
   <div class="info-card" id="info-card">
-    <div class="card-header">
+    <div class="card-header" id="card-header-el">
       <div>
         <div class="title-badge" id="card-badge">Celestial Body</div>
         <h2 id="card-name">Sun</h2>
@@ -474,51 +590,66 @@
       <button class="card-close-btn" id="btn-close-card" title="Close Panel">✕</button>
     </div>
 
+    <!-- Parent Planet Banner (Only shown if viewing a moon) -->
+    <div class="parent-planet-banner" id="parent-planet-banner" style="display: none;">
+      <span>Parent Planet:</span>
+      <a id="parent-planet-link">Earth →</a>
+    </div>
+
     <p class="body-desc" id="card-desc">
-      The Sun is the star at the center of the Solar System. It is a nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core.
+      The Sun is the star at the center of the Solar System.
     </p>
 
-    <!-- Metrics -->
+    <!-- Sublist of major moons for planets that have them -->
+    <div class="moons-sublist-container" id="moons-sublist-container" style="display: none;">
+      <div class="moons-sublist-title">
+        <span>Major Moons</span>
+        <span style="font-weight: 400; opacity: 0.8;" id="moons-sublist-count"></span>
+      </div>
+      <div class="moons-pill-wrap" id="moons-pill-wrap"></div>
+    </div>
+
+    <!-- Metrics Grid -->
     <div class="metrics-grid">
       <div class="metric-box">
-        <div class="metric-label">Mean Diameter</div>
-        <div class="metric-value" id="val-diameter">1,392,700 km</div>
-        <div class="metric-sub" id="sub-diameter">109 × Earth</div>
+        <div class="metric-label" id="lbl-diameter">Mean Diameter</div>
+        <div class="metric-value" id="val-diameter">--</div>
+        <div class="metric-sub" id="sub-diameter">--</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Mass</div>
-        <div class="metric-value" id="val-mass">1.989 × 10³⁰ kg</div>
-        <div class="metric-sub" id="sub-mass">333,000 × Earth</div>
+        <div class="metric-value" id="val-mass">--</div>
+        <div class="metric-sub" id="sub-mass">--</div>
       </div>
       <div class="metric-box">
-        <div class="metric-label">Distance from Sun</div>
-        <div class="metric-value" id="val-dist">0 AU</div>
-        <div class="metric-sub" id="sub-dist">Center</div>
+        <div class="metric-label" id="lbl-dist">Distance</div>
+        <div class="metric-value" id="val-dist">--</div>
+        <div class="metric-sub" id="sub-dist">--</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Orbital Period</div>
-        <div class="metric-value" id="val-orbit">N/A</div>
-        <div class="metric-sub" id="sub-orbit">Central Star</div>
+        <div class="metric-value" id="val-orbit">--</div>
+        <div class="metric-sub" id="sub-orbit">--</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Rotation Period</div>
-        <div class="metric-value" id="val-rotation">27 Earth Days</div>
-        <div class="metric-sub" id="sub-rotation">Differential</div>
+        <div class="metric-value" id="val-rotation">--</div>
+        <div class="metric-sub" id="sub-rotation">--</div>
       </div>
       <div class="metric-box">
-        <div class="metric-label">Mean Surface Temp</div>
-        <div class="metric-value" id="val-temp">5,500 °C</div>
-        <div class="metric-sub" id="sub-temp">Core: 15,000,000 °C</div>
+        <div class="metric-label">Surface Temp</div>
+        <div class="metric-value" id="val-temp">--</div>
+        <div class="metric-sub" id="sub-temp">--</div>
       </div>
       <div class="metric-box">
-        <div class="metric-label">Moons / Satellites</div>
-        <div class="metric-value" id="val-moons">0 (8 Planets)</div>
-        <div class="metric-sub" id="sub-moons">Major bodies</div>
+        <div class="metric-label" id="lbl-custom-1">Moons / Satellites</div>
+        <div class="metric-value" id="val-custom-1">--</div>
+        <div class="metric-sub" id="sub-custom-1">--</div>
       </div>
       <div class="metric-box">
         <div class="metric-label">Surface Gravity</div>
-        <div class="metric-value" id="val-gravity">274 m/s²</div>
-        <div class="metric-sub" id="sub-gravity">28.0 × Earth g</div>
+        <div class="metric-value" id="val-gravity">--</div>
+        <div class="metric-sub" id="sub-gravity">--</div>
       </div>
     </div>
 
@@ -527,10 +658,7 @@
       <div class="facts-title">
         <span>💡</span> Notable Scientific Facts
       </div>
-      <ul class="facts-list" id="card-facts">
-        <li>Contains 99.86% of the total mass of the entire Solar System.</li>
-        <li>Converts approximately 600 million tons of hydrogen into helium every single second.</li>
-      </ul>
+      <ul class="facts-list" id="card-facts"></ul>
     </div>
 
     <div class="card-actions">
@@ -551,20 +679,501 @@
 
   <script>
     /* =========================================================================
-       ASTRONOMICAL DATA DATASET
+       ASTRONOMICAL DATA DATASET: PLANETS & MOONS
        ========================================================================= */
+
+    // Full catalog of curated major moons
+    const MOONS_DATA = [
+      // EARTH
+      {
+        id: "luna",
+        name: "Moon (Luna)",
+        parentId: "earth",
+        type: "Major Natural Satellite",
+        color: "#c2c7cf",
+        radius: 0.9,
+        orbitRadius: 5.8,
+        orbitPeriodDays: 27.3,
+        realDiameterKm: 3474,
+        massKg: "7.342 × 10²² kg",
+        massRel: "0.0123 × Earth",
+        diameterKmStr: "3,474 km",
+        diameterRel: "0.27 × Earth",
+        distStr: "384,400 km from Earth",
+        distSub: "0.00257 AU",
+        orbitStr: "27.3 Earth Days",
+        rotStr: "27.3 Days (Tidally Locked)",
+        tempStr: "-130 °C to 120 °C",
+        tempSub: "No atmospheric insulation",
+        custom1Label: "Surface Composition",
+        custom1Val: "Regolith & Basalt",
+        custom1Sub: "Maria and highlands",
+        gravityStr: "1.62 m/s² (0.166 g)",
+        facts: [
+          "Tidally locked to Earth, meaning the exact same hemisphere always faces our planet.",
+          "Its gravitational pull drives oceanic tides and stabilizes Earth's 23.4° axial tilt, preserving climatic stability.",
+          "The only extraterrestrial body ever physically visited and walked upon by humans (Apollo program 1969–1972)."
+        ],
+        desc: "Earth's sole natural companion. A cratered, desolate rocky sphere with dark basaltic volcanic plains (maria) and luminous mountainous highlands."
+      },
+
+      // MARS MOONS
+      {
+        id: "phobos",
+        name: "Phobos",
+        parentId: "mars",
+        type: "Captured Asteroid Moon",
+        color: "#8c7e75",
+        radius: 0.45,
+        orbitRadius: 4.2,
+        orbitPeriodDays: 0.32, // 7.6 hours
+        realDiameterKm: 22.2,
+        massKg: "1.066 × 10¹⁶ kg",
+        massRel: "1.8 × 10⁻⁸ × Earth",
+        diameterKmStr: "22.2 km (Mean)",
+        diameterRel: "Non-spherical potato",
+        distStr: "9,376 km from Mars",
+        distSub: "Closest moon to parent",
+        orbitStr: "7.66 Hours (3× a Mars day)",
+        rotStr: "7.66 Hours (Tidally Locked)",
+        tempStr: "-40 °C to -112 °C",
+        tempSub: "Very cold vacuum",
+        custom1Label: "Orbital Decay",
+        custom1Val: "Inward Spiral (1.8m/century)",
+        custom1Sub: "Will crash or form ring",
+        gravityStr: "0.0057 m/s² (0.0006 g)",
+        facts: [
+          "Orbits so close to Mars that it completes three full revolutions around the planet in a single Martian day.",
+          "Tidal forces are drawing Phobos closer to Mars by ~1.8 meters every century; in ~30–50 million years it will either crash or be ripped into a Martian ring.",
+          "Features Stickney crater, an enormous impact crater 9 km across that almost shattered the entire moon."
+        ],
+        desc: "The larger and inner moon of Mars. A heavily grooved, potato-shaped captured asteroid orbiting perilously close to the Red Planet."
+      },
+      {
+        id: "deimos",
+        name: "Deimos",
+        parentId: "mars",
+        type: "Captured Asteroid Moon",
+        color: "#9e9185",
+        radius: 0.35,
+        orbitRadius: 6.8,
+        orbitPeriodDays: 1.26, // 30.3 hours
+        realDiameterKm: 12.4,
+        massKg: "1.476 × 10¹⁵ kg",
+        massRel: "2.5 × 10⁻⁹ × Earth",
+        diameterKmStr: "12.4 km (Mean)",
+        diameterRel: "Smooth regolith layer",
+        distStr: "23,460 km from Mars",
+        distSub: "Outer Martian moon",
+        orbitStr: "30.35 Hours",
+        rotStr: "30.35 Hours (Synchronous)",
+        tempStr: "-40 °C to -120 °C",
+        tempSub: "Extreme day/night drop",
+        custom1Label: "Escape Velocity",
+        custom1Val: "20 km/h (5.6 m/s)",
+        custom1Sub: "You could jump into orbit!",
+        gravityStr: "0.003 m/s² (0.0003 g)",
+        facts: [
+          "Deimos has an escape velocity of just 5.6 m/s (20 km/h) — an athlete running could easily jump right off the moon into outer space!",
+          "Has a much smoother visual surface than Phobos because its craters are filled with a thick blanket of regolith dust.",
+          "Named after Deimos, the Greek mythological personification of terror and panic."
+        ],
+        desc: "The smaller, outer moon of Mars. A tiny, dusty captured carbonaceous asteroid covered by a powdery regolith smoothing out its ancient craters."
+      },
+
+      // JUPITER - GALILEAN MOONS
+      {
+        id: "io",
+        name: "Io",
+        parentId: "jupiter",
+        type: "Galilean Moon (Volcanic)",
+        color: "#e2b83b",
+        radius: 0.95,
+        orbitRadius: 13.5,
+        orbitPeriodDays: 1.77,
+        realDiameterKm: 3643,
+        massKg: "8.932 × 10²² kg",
+        massRel: "0.015 × Earth",
+        diameterKmStr: "3,643 km",
+        diameterRel: "0.29 × Earth",
+        distStr: "421,700 km from Jupiter",
+        distSub: "Innermost Galilean moon",
+        orbitStr: "1.77 Earth Days",
+        rotStr: "1.77 Days (Synchronous)",
+        tempStr: "-143 °C to 1,600 °C",
+        tempSub: "Lava lakes reach 1600°C",
+        custom1Label: "Active Volcanoes",
+        custom1Val: "400+ Active Vents",
+        custom1Sub: "Most volcanic in solar system",
+        gravityStr: "1.796 m/s² (0.183 g)",
+        facts: [
+          "The most geologically active body in the Solar System, with hundreds of volcanoes spewing sulfur plumes up to 500 km into space.",
+          "Its internal heat is generated by relentless gravitational tidal flexing squeezed between Jupiter, Europa, and Ganymede.",
+          "Its surface is constantly repaved by fresh silicate and sulfur lava, leaving virtually zero impact craters visible."
+        ],
+        desc: "A hellish, pizza-colored volcanic world. Io's sulfurous landscape is tortured by extreme tidal friction generated by Jupiter's colossal gravitational field."
+      },
+      {
+        id: "europa",
+        name: "Europa",
+        parentId: "jupiter",
+        type: "Galilean Moon (Ocean World)",
+        color: "#c6bba8",
+        radius: 0.88,
+        orbitRadius: 17.0,
+        orbitPeriodDays: 3.55,
+        realDiameterKm: 3122,
+        massKg: "4.800 × 10²² kg",
+        massRel: "0.008 × Earth",
+        diameterKmStr: "3,122 km",
+        diameterRel: "0.245 × Earth",
+        distStr: "670,900 km from Jupiter",
+        distSub: "Smooth ice crust",
+        orbitStr: "3.55 Earth Days",
+        rotStr: "3.55 Days (Synchronous)",
+        tempStr: "-160 °C to -220 °C",
+        tempSub: "Surface ice sheet",
+        custom1Label: "Subsurface Ocean",
+        custom1Val: "2× Earth's Oceans Combined",
+        custom1Sub: "Prime target for astrobiology",
+        gravityStr: "1.315 m/s² (0.134 g)",
+        facts: [
+          "Harbors a global subsurface saltwater ocean beneath an icy crust 15–25 km thick, containing more liquid water than all Earth's oceans combined.",
+          "One of the premier candidates in the search for extraterrestrial microbial life, warmed by hydrothermal floor vents.",
+          "Its surface is one of the smoothest in the solar system, crisscrossed by striking red-brown fractures (lineae)."
+        ],
+        desc: "A cracked icy pearl hiding a warm, salty subterranean ocean. Europa is humanity's highest-priority target in the hunt for alien biology."
+      },
+      {
+        id: "ganymede",
+        name: "Ganymede",
+        parentId: "jupiter",
+        type: "Galilean Moon (King of Moons)",
+        color: "#918b82",
+        radius: 1.35,
+        orbitRadius: 21.5,
+        orbitPeriodDays: 7.15,
+        realDiameterKm: 5268,
+        massKg: "1.482 × 10²³ kg",
+        massRel: "0.025 × Earth",
+        diameterKmStr: "5,268 km",
+        diameterRel: "0.41 × Earth (Bigger than Mercury!)",
+        distStr: "1,070,400 km from Jupiter",
+        distSub: "Largest moon in solar system",
+        orbitStr: "7.15 Earth Days",
+        rotStr: "7.15 Days (Synchronous)",
+        tempStr: "-110 °C to -180 °C",
+        tempSub: "Icy grooved terrain",
+        custom1Label: "Magnetic Field",
+        custom1Val: "Own Intrinsic Magnetosphere",
+        custom1Sub: "Only moon with a magnetic core",
+        gravityStr: "1.428 m/s² (0.146 g)",
+        facts: [
+          "The largest moon in the Solar System — larger than the planet Mercury and dwarf planet Pluto.",
+          "The only known natural satellite in the Solar System that possesses an internally generated magnetic field.",
+          "May possess a sandwich of multiple subterranean ocean layers separated by varying crystalline phases of high-pressure ice."
+        ],
+        desc: "The behemoth king of all natural satellites. Ganymede is larger than Mercury and possesses its own protective magnetic field and liquid iron core."
+      },
+      {
+        id: "callisto",
+        name: "Callisto",
+        parentId: "jupiter",
+        type: "Galilean Moon (Cratered Relic)",
+        color: "#6b6762",
+        radius: 1.25,
+        orbitRadius: 26.5,
+        orbitPeriodDays: 16.69,
+        realDiameterKm: 4821,
+        massKg: "1.076 × 10²³ kg",
+        massRel: "0.018 × Earth",
+        diameterKmStr: "4,821 km",
+        diameterRel: "0.38 × Earth (99% Mercury)",
+        distStr: "1,882,700 km from Jupiter",
+        distSub: "Outermost Galilean moon",
+        orbitStr: "16.69 Earth Days",
+        rotStr: "16.69 Days (Synchronous)",
+        tempStr: "-140 °C to -190 °C",
+        tempSub: "Heavily cratered ice-rock",
+        custom1Label: "Surface Age",
+        custom1Val: "4+ Billion Years Old",
+        custom1Sub: "Oldest landscape in system",
+        gravityStr: "1.235 m/s² (0.126 g)",
+        facts: [
+          "The most heavily cratered object in the Solar System, serving as an unaltered 4-billion-year-old cosmic fossil.",
+          "Orbits beyond Jupiter's harsh radiation belts, making it the most realistic location for a future human exploration base in the Jovian system.",
+          "Valhalla crater is a monumental multi-ring impact basin spanning over 3,800 km across."
+        ],
+        desc: "A battered ice-rock world preserved in amber. Callisto's ancient surface has witnessed over 4 billion years of cosmic bombardment without tectonic renewal."
+      },
+
+      // SATURN MOONS
+      {
+        id: "titan",
+        name: "Titan",
+        parentId: "saturn",
+        type: "Major Satellite (Thick Atmosphere)",
+        color: "#d9a04a",
+        radius: 1.3,
+        orbitRadius: 25.0,
+        orbitPeriodDays: 15.95,
+        realDiameterKm: 5150,
+        massKg: "1.345 × 10²³ kg",
+        massRel: "0.0225 × Earth",
+        diameterKmStr: "5,150 km",
+        diameterRel: "0.40 × Earth",
+        distStr: "1,221,870 km from Saturn",
+        distSub: "Second largest moon in system",
+        orbitStr: "15.95 Earth Days",
+        rotStr: "15.95 Days (Synchronous)",
+        tempStr: "-179 °C",
+        tempSub: "Dense nitrogen smog",
+        custom1Label: "Atmosphere & Seas",
+        custom1Val: "1.5 atm, Liquid Methane Lakes",
+        custom1Sub: "Hydrological methane cycle",
+        gravityStr: "1.352 m/s² (0.138 g)",
+        facts: [
+          "The only moon in the Solar System with a dense, nitrogen-rich atmosphere (1.5 times denser than Earth's sea-level pressure).",
+          "Features a complete hydrological cycle with liquid methane/ethane rainfall, rivers, and colossal polar seas (Kraken Mare).",
+          "NASA's Dragonfly rotorcraft mission will fly across Titan's organic sands in the 2030s."
+        ],
+        desc: "A mysterious golden world veiled in hydrocarbon smog. Titan possesses towering dunes, methane monsoons, and liquid hydrocarbon oceans."
+      },
+      {
+        id: "enceladus",
+        name: "Enceladus",
+        parentId: "saturn",
+        type: "Active Cryovolcanic Moon",
+        color: "#e8eff5",
+        radius: 0.55,
+        orbitRadius: 14.0,
+        orbitPeriodDays: 1.37,
+        realDiameterKm: 504,
+        massKg: "1.080 × 10²⁰ kg",
+        massRel: "1.8 × 10⁻⁵ × Earth",
+        diameterKmStr: "504 km",
+        diameterRel: "0.04 × Earth",
+        distStr: "238,000 km from Saturn",
+        distSub: "Feeds Saturn's E-Ring",
+        orbitStr: "1.37 Earth Days",
+        rotStr: "1.37 Days (Synchronous)",
+        tempStr: "-198 °C",
+        tempSub: "High albedo reflective ice",
+        custom1Label: "Cryogeysers",
+        custom1Val: "100+ Geysers in Tiger Stripes",
+        custom1Sub: "Spews water vapor & organics",
+        gravityStr: "0.113 m/s² (0.011 g)",
+        facts: [
+          "Features dramatic cryovolcanic geysers erupting water vapor, salt, and complex organic molecules directly into space from south polar fractures ('Tiger Stripes').",
+          "Has the highest geometric albedo in the Solar System (reflecting nearly 99% of sunlight), making it dazzling white like fresh snow.",
+          "Its plumes feed Saturn's diffuse E-ring with fresh ice crystals."
+        ],
+        desc: "A brilliant, snowy ocean moon. Cryovolcanic geysers at its south pole erupt jets of vapor and hydrothermal salts from a warm global ocean beneath the ice."
+      },
+      {
+        id: "mimas",
+        name: "Mimas",
+        parentId: "saturn",
+        type: "Icy Moon ('Death Star')",
+        color: "#b5b0aa",
+        radius: 0.48,
+        orbitRadius: 11.8,
+        orbitPeriodDays: 0.94,
+        realDiameterKm: 396,
+        massKg: "3.75 × 10¹⁹ kg",
+        massRel: "6.3 × 10⁻⁶ × Earth",
+        diameterKmStr: "396 km",
+        diameterRel: "Herschel crater 130 km",
+        distStr: "185,520 km from Saturn",
+        distSub: "Innermost major Saturnian moon",
+        orbitStr: "0.94 Earth Days (22.6 hrs)",
+        rotStr: "22.6 Hours (Synchronous)",
+        tempStr: "-209 °C",
+        tempSub: "Pure water ice composition",
+        custom1Label: "Colossal Crater",
+        custom1Val: "Herschel Crater (1/3 diameter)",
+        custom1Sub: "Resembles the Death Star",
+        gravityStr: "0.064 m/s² (0.006 g)",
+        facts: [
+          "Instantly recognizable by Herschel Crater, an immense 130 km depression that gives Mimas its striking resemblance to the Star Wars Death Star.",
+          "The impact that carved Herschel was so violent it created shock-fractures right through to the opposite side of the moon.",
+          "Its gravitational resonance with ring particles is responsible for creating the famous Cassini Division in Saturn's rings."
+        ],
+        desc: "The 'Death Star' moon of Saturn. Dominated by the colossal Herschel impact crater, Mimas is almost entirely composed of low-density water ice."
+      },
+
+      // URANUS MOONS
+      {
+        id: "titania",
+        name: "Titania",
+        parentId: "uranus",
+        type: "Major Satellite of Uranus",
+        color: "#b0bcc4",
+        radius: 0.75,
+        orbitRadius: 12.5,
+        orbitPeriodDays: 8.71,
+        realDiameterKm: 1578,
+        massKg: "3.527 × 10²¹ kg",
+        massRel: "0.00059 × Earth",
+        diameterKmStr: "1,578 km",
+        diameterRel: "0.12 × Earth",
+        distStr: "436,000 km from Uranus",
+        distSub: "Largest moon of Uranus",
+        orbitStr: "8.71 Earth Days",
+        rotStr: "8.71 Days (Synchronous)",
+        tempStr: "-213 °C",
+        tempSub: "Equal mix of rock and ice",
+        custom1Label: "Giant Canyons",
+        custom1Val: "Messina Chasma (1,500 km)",
+        custom1Sub: "Massive fault valley network",
+        gravityStr: "0.379 m/s² (0.039 g)",
+        facts: [
+          "The largest moon of Uranus and eighth largest moon in the Solar System.",
+          "Cut by Messina Chasma, a monumental canyon trench stretching 1,500 km across its southern hemisphere.",
+          "All major moons of Uranus are named after characters from William Shakespeare and Alexander Pope."
+        ],
+        desc: "The queenly ruler of Uranus's satellites. Titania is an icy, cratered world scored by tectonic rift canyons and fresh impact scars."
+      },
+      {
+        id: "oberon",
+        name: "Oberon",
+        parentId: "uranus",
+        type: "Major Satellite of Uranus",
+        color: "#99a2a8",
+        radius: 0.72,
+        orbitRadius: 15.5,
+        orbitPeriodDays: 13.46,
+        realDiameterKm: 1523,
+        massKg: "3.014 × 10²¹ kg",
+        massRel: "0.00050 × Earth",
+        diameterKmStr: "1,523 km",
+        diameterRel: "0.12 × Earth",
+        distStr: "583,500 km from Uranus",
+        distSub: "Outermost major Uranian moon",
+        orbitStr: "13.46 Earth Days",
+        rotStr: "13.46 Days (Synchronous)",
+        tempStr: "-215 °C",
+        tempSub: "Very dark crater floors",
+        custom1Label: "Mountain Peak",
+        custom1Val: "11 km Tall Peak",
+        custom1Sub: "Observed by Voyager 2",
+        gravityStr: "0.346 m/s² (0.035 g)",
+        facts: [
+          "The outermost major moon of Uranus, displaying the oldest and most heavily cratered surface of any Uranian satellite.",
+          "Features a mountain peak towering 11 km high near its limb, photographed by Voyager 2 in 1986.",
+          "Crater floors are coated with a mysterious dark carbonaceous material that welled up from its interior."
+        ],
+        desc: "The second largest moon of Uranus. A dark, ancient world heavily pelted by impacts with mysterious carbon floors and sky-piercing peaks."
+      },
+      {
+        id: "miranda",
+        name: "Miranda",
+        parentId: "uranus",
+        type: "Icy Moon (Frankenstein Terrain)",
+        color: "#c8d0d6",
+        radius: 0.42,
+        orbitRadius: 9.8,
+        orbitPeriodDays: 1.41,
+        realDiameterKm: 472,
+        massKg: "6.59 × 10¹⁹ kg",
+        massRel: "1.1 × 10⁻⁵ × Earth",
+        diameterKmStr: "472 km",
+        diameterRel: "Highest cliff in solar system",
+        distStr: "129,900 km from Uranus",
+        distSub: "Innermost rounded moon",
+        orbitStr: "1.41 Earth Days",
+        rotStr: "1.41 Days (Synchronous)",
+        tempStr: "-213 °C",
+        tempSub: "Bizarre geological jumble",
+        custom1Label: "Verona Rupes",
+        custom1Val: "20 km Vertical Cliff",
+        custom1Sub: "12-minute freefall to bottom",
+        gravityStr: "0.079 m/s² (0.008 g)",
+        facts: [
+          "Home to Verona Rupes, a sheer vertical cliff 20 km (65,000 ft) high — the tallest known cliff in the entire Solar System.",
+          "A human falling off Verona Rupes would freefall for roughly 12 minutes in Miranda's low gravity before gently striking the floor.",
+          "Possesses a patchwork of jigsaw terrains called 'coronae' that appear as if the moon was smashed apart and reassembled."
+        ],
+        desc: "A surreal, Frankenstein-like jigsaw moon. Miranda boasts extreme geological scars, inverted chevron plateaus, and gargantuan 20-kilometer sheer cliffs."
+      },
+
+      // NEPTUNE MOONS
+      {
+        id: "triton",
+        name: "Triton",
+        parentId: "neptune",
+        type: "Captured Kuiper Belt Dwarf Moon",
+        color: "#adc0c9",
+        radius: 1.1,
+        orbitRadius: 11.5,
+        orbitPeriodDays: -5.88, // Retrograde orbit!
+        realDiameterKm: 2707,
+        massKg: "2.14 × 10²² kg",
+        massRel: "0.0036 × Earth",
+        diameterKmStr: "2,707 km",
+        diameterRel: "0.21 × Earth (Bigger than Pluto)",
+        distStr: "354,800 km from Neptune",
+        distSub: "Retrograde Kuiper Belt object",
+        orbitStr: "5.88 Days (Clockwise/Retrograde)",
+        rotStr: "5.88 Days (Tidally Locked)",
+        tempStr: "-235 °C (38 Kelvin)",
+        tempSub: "Coldest measured surface",
+        custom1Label: "Cryo-Geysers",
+        custom1Val: "Liquid Nitrogen Geysers",
+        custom1Sub: "Erupts 8 km into atmosphere",
+        gravityStr: "0.779 m/s² (0.079 g)",
+        facts: [
+          "The only large moon in the Solar System with a retrograde orbit (moves in the opposite direction of its planet's rotation), proving it was captured from the Kuiper Belt.",
+          "One of the few geologically active icy moons with active geysers erupting plumes of dark nitrogen gas and dust 8 km into its thin atmosphere.",
+          "With a surface temperature of -235 °C (38 Kelvin), it is one of the frigidest celestial bodies in the entire planetary system."
+        ],
+        desc: "Neptune's rogue captured dwarf planet from the Kuiper Belt. Triton travels in a backwards retrograde orbit, venting dark liquid nitrogen plumes across cantaloupe terrain."
+      },
+      {
+        id: "proteus",
+        name: "Proteus",
+        parentId: "neptune",
+        type: "Irregular Satellite",
+        color: "#7a8288",
+        radius: 0.5,
+        orbitRadius: 8.5,
+        orbitPeriodDays: 1.12,
+        realDiameterKm: 420,
+        massKg: "4.4 × 10¹⁹ kg",
+        massRel: "7.4 × 10⁻⁶ × Earth",
+        diameterKmStr: "420 km (Mean)",
+        diameterRel: "Limit of non-spherical bodies",
+        distStr: "117,647 km from Neptune",
+        distSub: "Second largest Neptunian moon",
+        orbitStr: "1.12 Earth Days (26.9 hrs)",
+        rotStr: "26.9 Hours (Synchronous)",
+        tempStr: "-222 °C",
+        tempSub: "Very low albedo (pitch black)",
+        custom1Label: "Shape Limit",
+        custom1Val: "Maximum Irregular Size",
+        custom1Sub: "Barely resisted rounding",
+        gravityStr: "0.07 m/s² (0.007 g)",
+        facts: [
+          "Proteus is about as large as a celestial body can physically get without its gravity pulling it into a spherical shape.",
+          "Extremely dark with an albedo of just 0.09, reflecting only 9% of the faint sunlight reaching Neptune.",
+          "Its largest crater, Pharos, is over 230 km wide and more than 10 km deep."
+        ],
+        desc: "A giant, boxy asteroid-like moon orbiting closely above Neptune's storms. Proteus is heavily battered and one of the darkest objects in the outer solar system."
+      }
+    ];
+
     const CELESTIAL_DATA = [
       {
         id: "sun",
         name: "Sun",
         type: "Yellow Dwarf Star (G2V)",
         color: "#ffaa00",
-        radius: 16.0,          // Visual unit radius
+        radius: 16.0,
         realDiameterKm: 1392700,
         distanceAU: 0,
         distUnits: 0,
         orbitPeriodDays: 0,
-        rotationPeriodHours: 648, // ~27 days
+        rotationPeriodHours: 648,
         massKg: "1.989 × 10³⁰ kg",
         massRel: "333,000 × Earth",
         diameterKmStr: "1,392,700 km",
@@ -575,8 +1184,9 @@
         rotStr: "27.0 Earth Days",
         tempStr: "5,500 °C (Surface)",
         tempSub: "Core: ~15,000,000 °C",
-        moonsStr: "8 Planets, millions of asteroids",
-        moonsSub: "Dominates 99.86% mass",
+        custom1Label: "Major Satellites",
+        custom1Val: "8 Planets, 200+ Moons",
+        custom1Sub: "Dominates 99.86% mass",
         gravityStr: "274.0 m/s² (28.0 g)",
         facts: [
           "Accounts for roughly 99.86% of the total mass of the entire Solar System.",
@@ -595,7 +1205,7 @@
         distanceAU: 0.39,
         distUnits: 28,
         orbitPeriodDays: 88,
-        rotationPeriodHours: 1407.6, // 58.6 days
+        rotationPeriodHours: 1407.6,
         massKg: "3.301 × 10²³ kg",
         massRel: "0.055 × Earth",
         diameterKmStr: "4,879 km",
@@ -606,8 +1216,9 @@
         rotStr: "58.6 Earth Days",
         tempStr: "-180 °C to 430 °C",
         tempSub: "Extreme thermal swing",
-        moonsStr: "0 Moons",
-        moonsSub: "No natural satellites",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "0 Moons",
+        custom1Sub: "No natural satellites",
         gravityStr: "3.7 m/s² (0.38 g)",
         facts: [
           "Mercury experiences the most extreme temperature swings in the Solar System due to having virtually no atmosphere.",
@@ -626,7 +1237,7 @@
         distanceAU: 0.72,
         distUnits: 42,
         orbitPeriodDays: 224.7,
-        rotationPeriodHours: -5832, // Retrograde rotation 243 days
+        rotationPeriodHours: -5832,
         massKg: "4.867 × 10²⁴ kg",
         massRel: "0.815 × Earth",
         diameterKmStr: "12,104 km",
@@ -637,8 +1248,9 @@
         rotStr: "243.0 Earth Days (Retrograde)",
         tempStr: "465 °C",
         tempSub: "Hottest planet in system",
-        moonsStr: "0 Moons",
-        moonsSub: "No natural satellites",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "0 Moons",
+        custom1Sub: "No natural satellites",
         gravityStr: "8.87 m/s² (0.90 g)",
         facts: [
           "Venus rotates clockwise (retrograde), meaning the Sun rises in the west and sets in the east.",
@@ -668,12 +1280,10 @@
         rotStr: "24.0 Hours",
         tempStr: "15 °C (Average)",
         tempSub: "-89 °C to 57 °C range",
-        moonsStr: "1 Moon (Luna)",
-        moonsSub: "Diameter: 3,474 km",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "1 Moon (Luna)",
+        custom1Sub: "Explore below",
         gravityStr: "9.81 m/s² (1.00 g)",
-        hasMoon: true,
-        moonRadius: 0.9,
-        moonDist: 6.5,
         facts: [
           "The only confirmed oasis in the universe supporting liquid surface oceans, active plate tectonics, and thriving life.",
           "Earth's magnetic field protects our atmosphere and organic biology from lethal solar wind radiation.",
@@ -702,8 +1312,9 @@
         rotStr: "24.6 Hours (Sol)",
         tempStr: "-63 °C (Average)",
         tempSub: "-140 °C to 20 °C range",
-        moonsStr: "2 Moons",
-        moonsSub: "Phobos & Deimos",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "2 Moons (Phobos & Deimos)",
+        custom1Sub: "Explore below",
         gravityStr: "3.72 m/s² (0.38 g)",
         facts: [
           "Home to Olympus Mons, the largest volcano in the Solar System (21.9 km high, almost triple Mount Everest).",
@@ -721,8 +1332,8 @@
         realDiameterKm: 139820,
         distanceAU: 5.20,
         distUnits: 110,
-        orbitPeriodDays: 4333, // ~11.86 years
-        rotationPeriodHours: 9.9, // fastest
+        orbitPeriodDays: 4333,
+        rotationPeriodHours: 9.9,
         massKg: "1.898 × 10²⁷ kg",
         massRel: "317.8 × Earth",
         diameterKmStr: "139,820 km",
@@ -733,8 +1344,9 @@
         rotStr: "9.9 Hours (Fastest rot.)",
         tempStr: "-110 °C (Cloud tops)",
         tempSub: "Superheated fluid interior",
-        moonsStr: "95 Confirmed Moons",
-        moonsSub: "Io, Europa, Ganymede, Callisto",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "95 Confirmed (4 Galilean)",
+        custom1Sub: "Explore Galilean moons below",
         gravityStr: "24.79 m/s² (2.53 g)",
         facts: [
           "Jupiter's Great Red Spot is a persistent anticyclonic storm larger than Earth that has raged for at least 350+ years.",
@@ -752,7 +1364,7 @@
         realDiameterKm: 116460,
         distanceAU: 9.58,
         distUnits: 150,
-        orbitPeriodDays: 10759, // ~29.45 years
+        orbitPeriodDays: 10759,
         rotationPeriodHours: 10.7,
         massKg: "5.683 × 10²⁶ kg",
         massRel: "95.2 × Earth",
@@ -764,8 +1376,9 @@
         rotStr: "10.7 Hours",
         tempStr: "-140 °C (Cloud tops)",
         tempSub: "Very low density world",
-        moonsStr: "146 Confirmed Moons",
-        moonsSub: "Titan, Enceladus, Mimas...",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "146 Confirmed Moons",
+        custom1Sub: "Explore Titan, Enceladus...",
         gravityStr: "10.44 m/s² (1.06 g)",
         hasRings: true,
         ringInner: 11.0,
@@ -786,8 +1399,8 @@
         realDiameterKm: 50724,
         distanceAU: 19.2,
         distUnits: 195,
-        orbitPeriodDays: 30687, // ~84 years
-        rotationPeriodHours: -17.2, // retrograde tilt 97.8°
+        orbitPeriodDays: 30687,
+        rotationPeriodHours: -17.2,
         massKg: "8.681 × 10²⁵ kg",
         massRel: "14.5 × Earth",
         diameterKmStr: "50,724 km",
@@ -798,13 +1411,14 @@
         rotStr: "17.2 Hours (Retrograde)",
         tempStr: "-195 °C",
         tempSub: "Coldest planetary atmosphere: -224 °C",
-        moonsStr: "28 Confirmed Moons",
-        moonsSub: "Titania, Oberon, Miranda...",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "28 Confirmed Moons",
+        custom1Sub: "Explore Titania, Oberon...",
         gravityStr: "8.69 m/s² (0.89 g)",
         hasRings: true,
         ringInner: 7.0,
         ringOuter: 9.5,
-        tiltZ: 1.7, // tilted on its side (~98 degrees)
+        tiltZ: 1.7,
         facts: [
           "Uranus rotates almost entirely on its side with an axial tilt of 97.8°, causing 42 years of continuous sunlight followed by 42 years of darkness at each pole.",
           "Contains an atmosphere rich in hydrogen, helium, and methane ice crystals which absorb red light and lend it its cyan-aquamarine hue.",
@@ -821,7 +1435,7 @@
         realDiameterKm: 49244,
         distanceAU: 30.05,
         distUnits: 240,
-        orbitPeriodDays: 60190, // ~164.8 years
+        orbitPeriodDays: 60190,
         rotationPeriodHours: 16.1,
         massKg: "1.024 × 10²⁶ kg",
         massRel: "17.1 × Earth",
@@ -833,8 +1447,9 @@
         rotStr: "16.1 Hours",
         tempStr: "-200 °C",
         tempSub: "Violent supersonic storms",
-        moonsStr: "16 Confirmed Moons",
-        moonsSub: "Triton (retrograde cryovolcanic)",
+        custom1Label: "Moons / Satellites",
+        custom1Val: "16 Confirmed Moons",
+        custom1Sub: "Explore Triton & Proteus",
         gravityStr: "11.15 m/s² (1.14 g)",
         facts: [
           "Neptune hosts the most ferocious winds discovered in the solar system, topping supersonic speeds over 2,100 km/h (1,300 mph).",
@@ -845,28 +1460,44 @@
       }
     ];
 
+    // Quick lookup map for moons by ID
+    const MOONS_BY_ID = {};
+    MOONS_DATA.forEach(m => { MOONS_BY_ID[m.id] = m; });
+
+    // Quick lookup map for moons by Parent ID
+    const MOONS_BY_PARENT = {};
+    MOONS_DATA.forEach(m => {
+      if (!MOONS_BY_PARENT[m.parentId]) MOONS_BY_PARENT[m.parentId] = [];
+      MOONS_BY_PARENT[m.parentId].push(m);
+    });
+
     /* =========================================================================
-       THREE.JS INITIALIZATION & SYSTEM SETUP
+       THREE.JS SETUP & STATE
        ========================================================================= */
     const container = document.getElementById('webgl-canvas');
     let scene, camera, renderer, controls;
     let celestialObjects = {};
-    let orbitLines = [];
+    let moonObjects = {};
+    let planetOrbitLines = [];
+    let moonOrbitLines = [];
     let asteroidBelt = null;
     let starField = null;
 
-    // Simulation state
+    // Simulation Flags
     let isPaused = false;
     let simSpeedMultiplier = 1.0;
-    let showOrbits = true;
+    let showPlanetOrbits = true;
+    let showMoons = true;
     let useEnhancedScale = true;
     let simulationTimeDays = 0;
-    let focusedBodyId = null;
+
+    // Camera Navigation State
+    let focusedTarget = null; // { type: 'planet'|'moon', id: '...' }
     let cameraLerping = false;
     let targetCameraPosition = new THREE.Vector3();
     let targetControlsTarget = new THREE.Vector3();
 
-    // Raycasting for interactive hover & selection
+    // Raycasting & Hover
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2(-999, -999);
     const tooltip = document.getElementById('hover-tooltip');
@@ -877,11 +1508,11 @@
       scene.fog = new THREE.FogExp2(0x020307, 0.0006);
 
       // Camera
-      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 4000);
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 4500);
       camera.position.set(0, 160, 280);
 
       // Renderer
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -892,47 +1523,48 @@
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.maxDistance = 1500;
-      controls.minDistance = 6;
+      controls.maxDistance = 1600;
+      controls.minDistance = 3;
       controls.target.set(0, 0, 0);
 
-      // Ambient & Lighting
-      const ambientLight = new THREE.AmbientLight(0x222638, 1.2);
+      // Ambient Lighting
+      const ambientLight = new THREE.AmbientLight(0x282c3f, 1.3);
       scene.add(ambientLight);
 
-      // Sun Light (Omnidirectional Point Light originating from 0,0,0)
-      const sunLight = new THREE.PointLight(0xfff6e5, 3.2, 2500, 0.4);
+      // Sun Light
+      const sunLight = new THREE.PointLight(0xfff6e5, 3.2, 3000, 0.35);
       sunLight.position.set(0, 0, 0);
       scene.add(sunLight);
 
-      // Background Starfield & Milky Way Dust
+      // Starfield
       createDeepStarfield();
 
-      // Build Sun & Planets
+      // Sun & Planets
       buildSolarSystem();
 
-      // Build Asteroid Belt
+      // Build All Moons
+      buildMoonsSystem();
+
+      // Asteroids
       buildAsteroidBelt();
 
-      // UI Listeners
+      // UI Init
       setupUI();
 
-      // Resize event
+      // Event Listeners
       window.addEventListener('resize', onWindowResize, false);
       window.addEventListener('pointermove', onPointerMove, false);
       window.addEventListener('click', onCanvasClick, false);
     }
 
     /* =========================================================================
-       PROCEDURAL TEXTURE GENERATION (Self-contained, NO broken external images)
+       PROCEDURAL TEXTURING (CANVAS GENERATORS)
        ========================================================================= */
     function createProceduralSunTexture() {
       const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 512;
+      canvas.width = 1024; canvas.height = 512;
       const ctx = canvas.getContext('2d');
 
-      // Base fiery gradient
       const grad = ctx.createLinearGradient(0, 0, 0, 512);
       grad.addColorStop(0, '#ff9000');
       grad.addColorStop(0.5, '#ffdd33');
@@ -940,7 +1572,6 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1024, 512);
 
-      // Solar granulation & flares
       for (let i = 0; i < 4000; i++) {
         const x = Math.random() * 1024;
         const y = Math.random() * 512;
@@ -951,10 +1582,9 @@
         ctx.fill();
       }
 
-      // Sunspots
       for (let s = 0; s < 18; s++) {
         const x = Math.random() * 1024;
-        const y = 150 + Math.random() * 212; // clustered around equator
+        const y = 150 + Math.random() * 212;
         const r = Math.random() * 14 + 6;
         ctx.fillStyle = 'rgba(70, 15, 0, 0.85)';
         ctx.beginPath();
@@ -966,25 +1596,21 @@
         ctx.fill();
       }
 
-      const texture = new THREE.CanvasTexture(canvas);
-      return texture;
+      return new THREE.CanvasTexture(canvas);
     }
 
     function createProceduralPlanetTexture(type, baseColorHex) {
       const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 512;
+      canvas.width = 1024; canvas.height = 512;
       const ctx = canvas.getContext('2d');
 
       ctx.fillStyle = baseColorHex;
       ctx.fillRect(0, 0, 1024, 512);
 
       if (type === 'earth') {
-        // Oceans
         ctx.fillStyle = '#0f3871';
         ctx.fillRect(0, 0, 1024, 512);
 
-        // Continents (organic blobs)
         ctx.fillStyle = '#2d6a36';
         for (let i = 0; i < 70; i++) {
           const cx = Math.random() * 1024;
@@ -993,7 +1619,6 @@
           ctx.beginPath();
           ctx.arc(cx, cy, rad, 0, Math.PI * 2);
           ctx.fill();
-          // Mountains
           ctx.fillStyle = '#7a6843';
           ctx.beginPath();
           ctx.arc(cx + 10, cy - 5, rad * 0.4, 0, Math.PI * 2);
@@ -1001,7 +1626,6 @@
           ctx.fillStyle = '#2d6a36';
         }
 
-        // White cloud swirls
         ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
         for (let c = 0; c < 50; c++) {
           const cx = Math.random() * 1024;
@@ -1011,23 +1635,19 @@
           ctx.fill();
         }
 
-        // Polar ice caps
         ctx.fillStyle = '#e8f4f8';
         ctx.fillRect(0, 0, 1024, 45);
         ctx.fillRect(0, 467, 1024, 45);
 
       } else if (type === 'jupiter') {
-        // Horizontal atmospheric banding
         const bands = 24;
         for (let b = 0; b < bands; b++) {
           const y = (512 / bands) * b;
           const h = 512 / bands;
-          const cval = b % 2 === 0 ? 'rgba(190, 130, 80, 0.8)' : 'rgba(235, 205, 175, 0.75)';
-          ctx.fillStyle = cval;
+          ctx.fillStyle = b % 2 === 0 ? 'rgba(190, 130, 80, 0.8)' : 'rgba(235, 205, 175, 0.75)';
           ctx.fillRect(0, y, 1024, h);
         }
 
-        // Turbulent swirl noise
         for (let i = 0; i < 400; i++) {
           const x = Math.random() * 1024;
           const y = Math.random() * 512;
@@ -1037,7 +1657,7 @@
           ctx.fill();
         }
 
-        // The Great Red Spot
+        // Great Red Spot
         ctx.fillStyle = '#a8321d';
         ctx.beginPath();
         ctx.ellipse(650, 310, 55, 32, -0.1, 0, Math.PI * 2);
@@ -1048,14 +1668,12 @@
         ctx.fill();
 
       } else if (type === 'saturn') {
-        // Soft golden bands
         for (let b = 0; b < 20; b++) {
           const y = (512 / 20) * b;
           ctx.fillStyle = b % 2 === 0 ? '#dfc18b' : '#c8a66a';
           ctx.fillRect(0, y, 1024, 512 / 20);
         }
       } else if (type === 'mars') {
-        // Craters and iron rust
         ctx.fillStyle = '#b33c1b';
         ctx.fillRect(0, 0, 1024, 512);
         ctx.fillStyle = 'rgba(70, 20, 10, 0.4)';
@@ -1064,12 +1682,10 @@
           ctx.arc(Math.random() * 1024, Math.random() * 512, Math.random() * 25 + 5, 0, Math.PI * 2);
           ctx.fill();
         }
-        // Polar caps
         ctx.fillStyle = '#f5e8e4';
         ctx.fillRect(0, 0, 1024, 25);
         ctx.fillRect(0, 487, 1024, 25);
       } else {
-        // Generic noisy surface (Mercury, Uranus, Neptune, Venus)
         for (let i = 0; i < 300; i++) {
           ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)';
           ctx.beginPath();
@@ -1081,46 +1697,101 @@
       return new THREE.CanvasTexture(canvas);
     }
 
+    function createProceduralMoonTexture(moonData) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = moonData.color;
+      ctx.fillRect(0, 0, 512, 256);
+
+      if (moonData.id === 'luna') {
+        // Lunar Maria (dark patches)
+        ctx.fillStyle = 'rgba(70, 75, 85, 0.45)';
+        for (let m = 0; m < 25; m++) {
+          ctx.beginPath();
+          ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 35 + 10, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (moonData.id === 'io') {
+        // Yellow-green sulfur pits & red lava rings
+        for (let p = 0; p < 45; p++) {
+          const x = Math.random() * 512;
+          const y = Math.random() * 256;
+          ctx.fillStyle = 'rgba(200, 40, 10, 0.7)';
+          ctx.beginPath();
+          ctx.arc(x, y, Math.random() * 8 + 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(240, 240, 60, 0.5)';
+          ctx.beginPath();
+          ctx.arc(x, y, Math.random() * 15 + 8, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      } else if (moonData.id === 'europa') {
+        // Red-brown tectonic cracks (lineae)
+        ctx.strokeStyle = 'rgba(140, 65, 35, 0.4)';
+        ctx.lineWidth = 2;
+        for (let l = 0; l < 40; l++) {
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * 512, Math.random() * 256);
+          ctx.bezierCurveTo(Math.random() * 512, Math.random() * 256, Math.random() * 512, Math.random() * 256, Math.random() * 512, Math.random() * 256);
+          ctx.stroke();
+        }
+      } else if (moonData.id === 'mimas') {
+        // Large Herschel crater on front face
+        ctx.fillStyle = 'rgba(30, 30, 35, 0.6)';
+        ctx.beginPath();
+        ctx.arc(220, 128, 38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.beginPath();
+        ctx.arc(220, 128, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Universal crater noise
+      for (let c = 0; c < 120; c++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)';
+        ctx.beginPath();
+        ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 7 + 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
     function createProceduralRingTexture() {
       const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 1;
+      canvas.width = 512; canvas.height = 1;
       const ctx = canvas.getContext('2d');
 
       const grad = ctx.createLinearGradient(0, 0, 512, 0);
       grad.addColorStop(0.0, 'rgba(0,0,0,0)');
       grad.addColorStop(0.1, 'rgba(190, 160, 120, 0.2)');
       grad.addColorStop(0.3, 'rgba(220, 195, 150, 0.85)');
-      grad.addColorStop(0.55, 'rgba(120, 95, 65, 0.15)'); // Cassini Division!
+      grad.addColorStop(0.55, 'rgba(120, 95, 65, 0.15)'); // Cassini Division
       grad.addColorStop(0.65, 'rgba(235, 210, 165, 0.9)');
       grad.addColorStop(0.9, 'rgba(180, 150, 110, 0.5)');
       grad.addColorStop(1.0, 'rgba(0,0,0,0)');
 
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 512, 1);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      return texture;
+      return new THREE.CanvasTexture(canvas);
     }
 
     /* =========================================================================
-       BUILD SCENE: SUN, PLANETS, ORBIT TRAILS, RINGS, MOON
+       BUILD CELESTIAL BODIES (SUN & PLANETS)
        ========================================================================= */
     function buildSolarSystem() {
       // 1. SUN
       const sunData = CELESTIAL_DATA[0];
       const sunGeo = new THREE.SphereGeometry(sunData.radius, 48, 48);
-      const sunTexture = createProceduralSunTexture();
-
-      // Custom Sun material with radiant glow
-      const sunMat = new THREE.MeshBasicMaterial({
-        map: sunTexture
-      });
+      const sunMat = new THREE.MeshBasicMaterial({ map: createProceduralSunTexture() });
       const sunMesh = new THREE.Mesh(sunGeo, sunMat);
-      sunMesh.userData = { id: sunData.id, data: sunData };
+      sunMesh.userData = { isCelestial: true, isMoon: false, id: sunData.id, data: sunData };
       scene.add(sunMesh);
 
-      // Atmospheric Corona / Glow Sprite
+      // Sun Corona Glow
       const coronaGeo = new THREE.SphereGeometry(sunData.radius * 1.25, 32, 32);
       const coronaMat = new THREE.MeshBasicMaterial({
         color: 0xffaa22,
@@ -1141,7 +1812,7 @@
       for (let i = 1; i < CELESTIAL_DATA.length; i++) {
         const pData = CELESTIAL_DATA[i];
 
-        // Orbit Line Ring
+        // Orbit Line
         const orbitPoints = [];
         const orbitSegments = 140;
         for (let s = 0; s <= orbitSegments; s++) {
@@ -1156,75 +1827,105 @@
         });
         const orbitLine = new THREE.Line(orbitGeo, orbitMat);
         scene.add(orbitLine);
-        orbitLines.push(orbitLine);
+        planetOrbitLines.push(orbitLine);
 
-        // Planet Pivot & Mesh
+        // Planet Pivot Group (Moves in solar space)
         const planetPivot = new THREE.Group();
         scene.add(planetPivot);
 
         const planetGeo = new THREE.SphereGeometry(pData.radius, 36, 36);
-        const planetTex = createProceduralPlanetTexture(pData.id, pData.color);
         const planetMat = new THREE.MeshStandardMaterial({
-          map: planetTex,
+          map: createProceduralPlanetTexture(pData.id, pData.color),
           roughness: 0.85,
           metalness: 0.1
         });
         const planetMesh = new THREE.Mesh(planetGeo, planetMat);
         planetMesh.castShadow = true;
         planetMesh.receiveShadow = true;
-        planetMesh.userData = { id: pData.id, data: pData };
+        planetMesh.userData = { isCelestial: true, isMoon: false, id: pData.id, data: pData };
 
-        if (pData.tiltZ) {
-          planetMesh.rotation.z = pData.tiltZ;
-        }
-
+        if (pData.tiltZ) planetMesh.rotation.z = pData.tiltZ;
         planetPivot.add(planetMesh);
 
-        // Optional Rings (Saturn, Uranus)
-        let ringsMesh = null;
+        // Optional Rings
         if (pData.hasRings) {
           const ringGeo = new THREE.RingGeometry(pData.ringInner, pData.ringOuter, 64);
-          // Rotate ring geometry to lie flat on the equator
           ringGeo.rotateX(Math.PI / 2);
-          const ringTex = createProceduralRingTexture();
           const ringMat = new THREE.MeshStandardMaterial({
-            map: ringTex,
+            map: createProceduralRingTexture(),
             side: THREE.DoubleSide,
             transparent: true,
             opacity: 0.85,
             roughness: 0.5
           });
-          ringsMesh = new THREE.Mesh(ringGeo, ringMat);
-          ringsMesh.rotation.x = 0.25; // elegant tilt
+          const ringsMesh = new THREE.Mesh(ringGeo, ringMat);
+          ringsMesh.rotation.x = 0.25;
           planetMesh.add(ringsMesh);
-        }
-
-        // Optional Moon (Earth Luna)
-        let moonMesh = null;
-        if (pData.hasMoon) {
-          const moonGeo = new THREE.SphereGeometry(pData.moonRadius, 16, 16);
-          const moonMat = new THREE.MeshStandardMaterial({
-            color: 0xaaaaaa,
-            roughness: 0.95
-          });
-          moonMesh = new THREE.Mesh(moonGeo, moonMat);
-          moonMesh.userData = { isMoon: true, name: "Moon (Luna)" };
-          planetMesh.add(moonMesh);
         }
 
         celestialObjects[pData.id] = {
           mesh: planetMesh,
           pivot: planetPivot,
           data: pData,
-          currentAngle: Math.random() * Math.PI * 2,
-          moonMesh: moonMesh,
-          moonAngle: 0
+          currentAngle: Math.random() * Math.PI * 2
         };
       }
     }
 
     /* =========================================================================
-       ASTEROID BELT (Main Belt between Mars and Jupiter)
+       BUILD ALL MOONS & MOON ORBIT RINGS
+       ========================================================================= */
+    function buildMoonsSystem() {
+      MOONS_DATA.forEach(mData => {
+        const parentObj = celestialObjects[mData.parentId];
+        if (!parentObj) return;
+
+        // Group anchored directly to the parent planet mesh
+        const moonGroup = new THREE.Group();
+        parentObj.mesh.add(moonGroup);
+
+        // Moon Orbit Trace Ring
+        const mOrbitPoints = [];
+        const mSegments = 64;
+        for (let s = 0; s <= mSegments; s++) {
+          const theta = (s / mSegments) * Math.PI * 2;
+          mOrbitPoints.push(new THREE.Vector3(Math.cos(theta) * mData.orbitRadius, 0, Math.sin(theta) * mData.orbitRadius));
+        }
+        const mOrbitGeo = new THREE.BufferGeometry().setFromPoints(mOrbitPoints);
+        const mOrbitMat = new THREE.LineBasicMaterial({
+          color: 0x9370db, // subtle violet
+          transparent: true,
+          opacity: 0.4
+        });
+        const mOrbitLine = new THREE.Line(mOrbitGeo, mOrbitMat);
+        moonGroup.add(mOrbitLine);
+        moonOrbitLines.push(mOrbitLine);
+
+        // Moon Mesh
+        const mGeo = new THREE.SphereGeometry(mData.radius, 24, 24);
+        const mMat = new THREE.MeshStandardMaterial({
+          map: createProceduralMoonTexture(mData),
+          roughness: 0.9,
+          metalness: 0.05
+        });
+        const mMesh = new THREE.Mesh(mGeo, mMat);
+        mMesh.castShadow = true;
+        mMesh.receiveShadow = true;
+        mMesh.userData = { isCelestial: true, isMoon: true, id: mData.id, data: mData };
+        moonGroup.add(mMesh);
+
+        moonObjects[mData.id] = {
+          mesh: mMesh,
+          group: moonGroup,
+          orbitLine: mOrbitLine,
+          data: mData,
+          currentAngle: Math.random() * Math.PI * 2
+        };
+      });
+    }
+
+    /* =========================================================================
+       ASTEROID BELT & STARFIELD
        ========================================================================= */
     function buildAsteroidBelt() {
       const asteroidCount = 1800;
@@ -1232,13 +1933,11 @@
       const positions = new Float32Array(asteroidCount * 3);
       const colors = new Float32Array(asteroidCount * 3);
 
-      const rMin = 88;
-      const rMax = 100;
-
+      const rMin = 88; const rMax = 100;
       for (let i = 0; i < asteroidCount; i++) {
         const radius = rMin + Math.random() * (rMax - rMin);
         const theta = Math.random() * Math.PI * 2;
-        const yOffset = (Math.random() - 0.5) * 6; // scattered plane
+        const yOffset = (Math.random() - 0.5) * 6;
 
         positions[i * 3] = Math.cos(theta) * radius;
         positions[i * 3 + 1] = yOffset;
@@ -1264,9 +1963,6 @@
       scene.add(asteroidBelt);
     }
 
-    /* =========================================================================
-       DEEP STARFIELD & MILKY WAY
-       ========================================================================= */
     function createDeepStarfield() {
       const starCount = 3500;
       const starGeo = new THREE.BufferGeometry();
@@ -1282,14 +1978,13 @@
         positions[i * 3 + 1] = dist * Math.sin(phi) * Math.sin(theta);
         positions[i * 3 + 2] = dist * Math.cos(phi);
 
-        // Varied stellar temperatures (blue, white, warm yellow)
         const randType = Math.random();
         if (randType > 0.8) {
-          colors[i * 3] = 0.7; colors[i * 3 + 1] = 0.85; colors[i * 3 + 2] = 1.0; // hot blue-white
+          colors[i * 3] = 0.7; colors[i * 3 + 1] = 0.85; colors[i * 3 + 2] = 1.0;
         } else if (randType > 0.6) {
-          colors[i * 3] = 1.0; colors[i * 3 + 1] = 0.9; colors[i * 3 + 2] = 0.7;  // yellow-orange
+          colors[i * 3] = 1.0; colors[i * 3 + 1] = 0.9; colors[i * 3 + 2] = 0.7;
         } else {
-          colors[i * 3] = 1.0; colors[i * 3 + 1] = 1.0; colors[i * 3 + 2] = 1.0;  // crisp white
+          colors[i * 3] = 1.0; colors[i * 3 + 1] = 1.0; colors[i * 3 + 2] = 1.0;
         }
       }
 
@@ -1308,7 +2003,7 @@
     }
 
     /* =========================================================================
-       SIMULATION LOOP & ORBITAL CALCULATIONS
+       ANIMATION LOOP & ORBITAL DYNAMICS
        ========================================================================= */
     let lastTime = performance.now();
 
@@ -1319,95 +2014,120 @@
       lastTime = currentTime;
 
       if (!isPaused) {
-        // Base Earth day progression: 1 real second = 15 Earth days at 1.0x speed
         const daysPerSec = 15 * simSpeedMultiplier;
         const daysPassed = deltaSeconds * daysPerSec;
         simulationTimeDays += daysPassed;
 
-        // Update HUD
         document.getElementById('hud-sim-date').textContent = `Day ${Math.floor(simulationTimeDays)} (${(simulationTimeDays / 365.25).toFixed(1)} yrs)`;
 
-        // Rotate Sun
+        // Sun rotation
         celestialObjects['sun'].mesh.rotation.y += (deltaSeconds * 0.25) * simSpeedMultiplier;
 
-        // Rotate Asteroid Belt
-        if (asteroidBelt) {
-          asteroidBelt.rotation.y += deltaSeconds * 0.015 * simSpeedMultiplier;
-        }
+        // Asteroids drift
+        if (asteroidBelt) asteroidBelt.rotation.y += deltaSeconds * 0.015 * simSpeedMultiplier;
 
-        // Animate each planet in Keplerian fashion
+        // Planets orbits & rotations
         for (let i = 1; i < CELESTIAL_DATA.length; i++) {
           const pData = CELESTIAL_DATA[i];
           const obj = celestialObjects[pData.id];
 
-          // Angular velocity derived from real orbital period (days)
           const orbitalSpeed = (Math.PI * 2) / pData.orbitPeriodDays;
           obj.currentAngle += orbitalSpeed * daysPassed;
 
-          // Position along elliptical / circular orbit
-          const x = Math.cos(obj.currentAngle) * pData.distUnits;
-          const z = Math.sin(obj.currentAngle) * pData.distUnits;
-          obj.mesh.position.set(x, 0, z);
+          const px = Math.cos(obj.currentAngle) * pData.distUnits;
+          const pz = Math.sin(obj.currentAngle) * pData.distUnits;
+          obj.mesh.position.set(px, 0, pz);
 
-          // Axial rotation
           const rotSpeed = ((Math.PI * 2) / (pData.rotationPeriodHours / 24)) * daysPassed;
           obj.mesh.rotation.y += rotSpeed * 0.08;
-
-          // Moon orbit around Earth
-          if (obj.moonMesh) {
-            obj.moonAngle += deltaSeconds * 3.5 * simSpeedMultiplier;
-            obj.moonMesh.position.set(
-              Math.cos(obj.moonAngle) * pData.moonDist,
-              Math.sin(obj.moonAngle) * 0.5,
-              Math.sin(obj.moonAngle) * pData.moonDist
-            );
-          }
         }
+
+        // Moons revolution around parent planets
+        MOONS_DATA.forEach(mData => {
+          const mObj = moonObjects[mData.id];
+          if (mObj) {
+            // Speed of moon orbit
+            const moonSpeed = (Math.PI * 2) / Math.abs(mData.orbitPeriodDays);
+            const direction = mData.orbitPeriodDays < 0 ? -1 : 1; // Triton retrograde support
+            mObj.currentAngle += direction * moonSpeed * daysPassed;
+
+            const mx = Math.cos(mObj.currentAngle) * mData.orbitRadius;
+            const mz = Math.sin(mObj.currentAngle) * mData.orbitRadius;
+            mObj.mesh.position.set(mx, 0, mz);
+            mObj.mesh.rotation.y += deltaSeconds * 2.0 * simSpeedMultiplier;
+          }
+        });
       }
 
-      // Camera lerp & tracking
+      // Camera Smooth Tracking
       handleCameraTracking(deltaSeconds);
 
-      // Orbit controls damping
       controls.update();
 
-      // Update distance HUD
       const camDist = camera.position.distanceTo(controls.target);
       document.getElementById('hud-cam-dist').textContent = `${Math.round(camDist)} units`;
 
-      // Render
       renderer.render(scene, camera);
     }
 
     /* =========================================================================
-       CAMERA FOCUS & SMOOTH TRACKING
+       CAMERA FOCUS & POSITION RETRIEVAL
        ========================================================================= */
-    function focusOnBody(bodyId) {
-      focusedBodyId = bodyId;
-      cameraLerping = true;
-
-      const body = celestialObjects[bodyId];
-      if (!body) return;
-
-      // Update UI active highlights
-      updateSelectionRibbon(bodyId);
-      displayInfoCard(body.data);
-
-      document.getElementById('hud-focused-name').textContent = body.data.name;
-
-      if (bodyId === 'sun') {
-        targetControlsTarget.set(0, 0, 0);
-        targetCameraPosition.set(0, 25, 48);
-      } else {
-        const meshPos = body.mesh.position;
-        targetControlsTarget.copy(meshPos);
-        const offsetDist = Math.max(body.data.radius * 3.5, 12);
-        targetCameraPosition.copy(meshPos).add(new THREE.Vector3(offsetDist * 0.8, offsetDist * 0.5, offsetDist));
+    function getBodyWorldPosition(target) {
+      const tempVec = new THREE.Vector3();
+      if (target.type === 'planet' || target.id === 'sun') {
+        const obj = celestialObjects[target.id];
+        if (obj) obj.mesh.getWorldPosition(tempVec);
+      } else if (target.type === 'moon') {
+        const mObj = moonObjects[target.id];
+        if (mObj) mObj.mesh.getWorldPosition(tempVec);
       }
+      return tempVec;
+    }
+
+    function focusOnBody(bodyId, isMoon = false) {
+      cameraLerping = true;
+      const targetType = isMoon ? 'moon' : 'planet';
+      focusedTarget = { type: targetType, id: bodyId };
+
+      let targetData = null;
+      let targetRadius = 3.0;
+
+      if (isMoon) {
+        const mObj = moonObjects[bodyId];
+        if (!mObj) return;
+        targetData = mObj.data;
+        targetRadius = mObj.data.radius;
+      } else {
+        const pObj = celestialObjects[bodyId];
+        if (!pObj) return;
+        targetData = pObj.data;
+        targetRadius = pObj.data.radius;
+      }
+
+      updateSelectionRibbon(bodyId, isMoon);
+      displayInfoCard(targetData, isMoon);
+
+      document.getElementById('hud-focused-name').textContent = targetData.name;
+
+      const worldPos = getBodyWorldPosition(focusedTarget);
+      targetControlsTarget.copy(worldPos);
+
+      // Distance adjustment depending on body scale
+      let offsetDist = 0;
+      if (bodyId === 'sun') {
+        offsetDist = 48;
+      } else if (isMoon) {
+        offsetDist = Math.max(targetRadius * 5.0, 4.5);
+      } else {
+        offsetDist = Math.max(targetRadius * 3.5, 14);
+      }
+
+      targetCameraPosition.copy(worldPos).add(new THREE.Vector3(offsetDist * 0.85, offsetDist * 0.45, offsetDist));
     }
 
     function unfocusCamera() {
-      focusedBodyId = null;
+      focusedTarget = null;
       cameraLerping = true;
       targetControlsTarget.set(0, 0, 0);
       targetCameraPosition.set(0, 160, 280);
@@ -1416,30 +2136,26 @@
     }
 
     function handleCameraTracking(delta) {
-      if (focusedBodyId) {
-        const body = celestialObjects[focusedBodyId];
-        if (body) {
-          const currentPos = body.mesh.position;
+      if (focusedTarget) {
+        const currentWorldPos = getBodyWorldPosition(focusedTarget);
 
-          // If lerping to target initially
-          if (cameraLerping) {
-            const lerpSpeed = Math.min(delta * 4.0, 1.0);
-            controls.target.lerp(currentPos, lerpSpeed);
-            camera.position.lerp(targetCameraPosition, lerpSpeed);
+        if (cameraLerping) {
+          const lerpSpeed = Math.min(delta * 4.5, 1.0);
+          controls.target.lerp(currentWorldPos, lerpSpeed);
+          camera.position.lerp(targetCameraPosition, lerpSpeed);
 
-            if (controls.target.distanceTo(currentPos) < 0.2 && camera.position.distanceTo(targetCameraPosition) < 0.8) {
-              cameraLerping = false;
-            }
-          } else {
-            // Keep locked to revolving planet smoothly
-            const prevTarget = controls.target.clone();
-            controls.target.copy(currentPos);
-            const deltaMovement = currentPos.clone().sub(prevTarget);
-            camera.position.add(deltaMovement);
+          if (controls.target.distanceTo(currentWorldPos) < 0.2 && camera.position.distanceTo(targetCameraPosition) < 0.8) {
+            cameraLerping = false;
           }
+        } else {
+          // Locked in orbital tracking
+          const prevTarget = controls.target.clone();
+          controls.target.copy(currentWorldPos);
+          const deltaMovement = currentWorldPos.clone().sub(prevTarget);
+          camera.position.add(deltaMovement);
         }
       } else if (cameraLerping) {
-        const lerpSpeed = Math.min(delta * 4.0, 1.0);
+        const lerpSpeed = Math.min(delta * 4.5, 1.0);
         controls.target.lerp(targetControlsTarget, lerpSpeed);
         camera.position.lerp(targetCameraPosition, lerpSpeed);
 
@@ -1450,41 +2166,92 @@
     }
 
     /* =========================================================================
-       USER INTERACTION & CARD DETAILS
+       DETAILED INFO CARD POPULATION
        ========================================================================= */
-    function displayInfoCard(data) {
+    function displayInfoCard(data, isMoon = false) {
       const card = document.getElementById('info-card');
+      const headerEl = document.getElementById('card-header-el');
       card.classList.remove('collapsed');
+
+      if (isMoon) {
+        headerEl.classList.add('is-moon');
+        card.classList.add('is-moon');
+      } else {
+        headerEl.classList.remove('is-moon');
+        card.classList.remove('is-moon');
+      }
 
       document.getElementById('card-badge').textContent = data.type;
       document.getElementById('card-name').textContent = data.name;
       document.getElementById('card-desc').textContent = data.desc;
 
+      // Parent Planet banner handling
+      const parentBanner = document.getElementById('parent-planet-banner');
+      if (isMoon && data.parentId) {
+        const parentPlanet = celestialObjects[data.parentId].data;
+        parentBanner.style.display = 'flex';
+        const link = document.getElementById('parent-planet-link');
+        link.textContent = `${parentPlanet.name} →`;
+        link.onclick = () => focusOnBody(parentPlanet.id, false);
+      } else {
+        parentBanner.style.display = 'none';
+      }
+
+      // Moons pill list inside parent planet card
+      const moonsSublist = document.getElementById('moons-sublist-container');
+      const moonsPillWrap = document.getElementById('moons-pill-wrap');
+      moonsPillWrap.innerHTML = '';
+
+      if (!isMoon && MOONS_BY_PARENT[data.id] && MOONS_BY_PARENT[data.id].length > 0) {
+        moonsSublist.style.display = 'block';
+        const moons = MOONS_BY_PARENT[data.id];
+        document.getElementById('moons-sublist-count').textContent = `(${moons.length} featured)`;
+        moons.forEach(m => {
+          const pill = document.createElement('button');
+          pill.className = 'moon-pill';
+          pill.textContent = m.name;
+          pill.onclick = () => focusOnBody(m.id, true);
+          moonsPillWrap.appendChild(pill);
+        });
+      } else {
+        moonsSublist.style.display = 'none';
+      }
+
+      // Metrics values
       document.getElementById('val-diameter').textContent = data.diameterKmStr;
       document.getElementById('sub-diameter').textContent = data.diameterRel;
 
       document.getElementById('val-mass').textContent = data.massKg;
       document.getElementById('sub-mass').textContent = data.massRel;
 
-      document.getElementById('val-dist').textContent = data.distAuStr;
-      document.getElementById('sub-dist').textContent = data.distKmStr;
+      if (isMoon) {
+        document.getElementById('lbl-dist').textContent = "Orbit Distance";
+        document.getElementById('val-dist').textContent = data.distStr;
+        document.getElementById('sub-dist').textContent = data.distSub;
+      } else {
+        document.getElementById('lbl-dist').textContent = "Distance from Sun";
+        document.getElementById('val-dist').textContent = data.distAuStr;
+        document.getElementById('sub-dist').textContent = data.distKmStr;
+      }
 
       document.getElementById('val-orbit').textContent = data.orbitStr;
-      document.getElementById('sub-orbit').textContent = data.orbitPeriodDays > 0 ? `${data.orbitPeriodDays} days` : "Central body";
+      document.getElementById('sub-orbit').textContent = data.orbitPeriodDays !== 0 ? `${Math.abs(data.orbitPeriodDays)} days` : "Central Body";
 
       document.getElementById('val-rotation').textContent = data.rotStr;
-      document.getElementById('sub-rotation').textContent = `${Math.abs(data.rotationPeriodHours)} hrs`;
+      document.getElementById('sub-rotation').textContent = data.rotationPeriodHours ? `${Math.abs(data.rotationPeriodHours)} hrs` : "Axial period";
 
       document.getElementById('val-temp').textContent = data.tempStr;
       document.getElementById('sub-temp').textContent = data.tempSub;
 
-      document.getElementById('val-moons').textContent = data.moonsStr;
-      document.getElementById('sub-moons').textContent = data.moonsSub;
+      // Custom metric 1
+      document.getElementById('lbl-custom-1').textContent = data.custom1Label || "Satellites";
+      document.getElementById('val-custom-1').textContent = data.custom1Val || "--";
+      document.getElementById('sub-custom-1').textContent = data.custom1Sub || "--";
 
       document.getElementById('val-gravity').textContent = data.gravityStr;
       document.getElementById('sub-gravity').textContent = "Surface acceleration";
 
-      // Populate facts
+      // Facts
       const factsList = document.getElementById('card-facts');
       factsList.innerHTML = '';
       data.facts.forEach(fact => {
@@ -1494,16 +2261,20 @@
       });
     }
 
+    /* =========================================================================
+       UI CONTROLS & BOTTOM NAVIGATION BAR
+       ========================================================================= */
     function setupUI() {
-      // Build Bottom Navigation Ribbon
       const ribbon = document.getElementById('nav-ribbon');
+
+      // Planets chips
       CELESTIAL_DATA.forEach(body => {
         const btn = document.createElement('button');
         btn.className = 'nav-chip';
         btn.id = `chip-${body.id}`;
         btn.innerHTML = `<span class="chip-dot" style="background-color: ${body.color};"></span> ${body.name}`;
         btn.addEventListener('click', () => {
-          focusOnBody(body.id);
+          focusOnBody(body.id, false);
         });
         ribbon.appendChild(btn);
       });
@@ -1517,33 +2288,41 @@
         playPauseBtn.classList.toggle('active', isPaused);
       });
 
-      // Toggle Orbits
+      // Toggle Planet Orbits
       const toggleOrbitsBtn = document.getElementById('btn-toggle-orbits');
-      toggleOrbitsBtn.classList.add('active');
       toggleOrbitsBtn.addEventListener('click', () => {
-        showOrbits = !showOrbits;
-        orbitLines.forEach(line => line.visible = showOrbits);
-        toggleOrbitsBtn.classList.toggle('active', showOrbits);
+        showPlanetOrbits = !showPlanetOrbits;
+        planetOrbitLines.forEach(line => line.visible = showPlanetOrbits);
+        toggleOrbitsBtn.classList.toggle('active', showPlanetOrbits);
       });
 
-      // Toggle Scale Mode (Realistic vs Enhanced Visual)
+      // Toggle Moons Visibility
+      const toggleMoonsBtn = document.getElementById('btn-toggle-moons');
+      toggleMoonsBtn.addEventListener('click', () => {
+        showMoons = !showMoons;
+        Object.values(moonObjects).forEach(mObj => {
+          mObj.mesh.visible = showMoons;
+          mObj.orbitLine.visible = showMoons;
+        });
+        toggleMoonsBtn.classList.toggle('active', showMoons);
+      });
+
+      // Toggle Scale
       const toggleScaleBtn = document.getElementById('btn-toggle-scale');
       toggleScaleBtn.addEventListener('click', () => {
         useEnhancedScale = !useEnhancedScale;
         document.getElementById('scale-mode-text').textContent = useEnhancedScale ? 'Enhanced Scale' : 'Semi-Real Scale';
         toggleScaleBtn.classList.toggle('active', !useEnhancedScale);
 
-        // Adjust mesh scale on the fly
         CELESTIAL_DATA.forEach(bodyData => {
           const obj = celestialObjects[bodyData.id];
           if (obj) {
             if (useEnhancedScale) {
               obj.mesh.scale.set(1, 1, 1);
             } else {
-              // Scale planets proportionally to real diameter
-              const relScale = Math.max(bodyData.realDiameterKm / 12742 * 0.45, 0.2);
+              const relScale = Math.max(bodyData.realDiameterKm / 12742 * 0.45, 0.25);
               if (bodyData.id === 'sun') {
-                obj.mesh.scale.set(0.6, 0.6, 0.6);
+                obj.mesh.scale.set(0.65, 0.65, 0.65);
               } else {
                 obj.mesh.scale.set(relScale, relScale, relScale);
               }
@@ -1570,21 +2349,23 @@
         document.getElementById('info-card').classList.add('collapsed');
       });
 
-      // Focus / Unfocus buttons inside Card
+      // Card Action Buttons
       document.getElementById('btn-focus-target').addEventListener('click', () => {
-        if (focusedBodyId) focusOnBody(focusedBodyId);
+        if (focusedTarget) focusOnBody(focusedTarget.id, focusedTarget.type === 'moon');
       });
       document.getElementById('btn-unfocus').addEventListener('click', () => {
         unfocusCamera();
       });
 
-      // Initial focus on Sun or showcase
-      displayInfoCard(CELESTIAL_DATA[0]);
+      // Start with overview of Sun
+      displayInfoCard(CELESTIAL_DATA[0], false);
     }
 
-    function updateSelectionRibbon(activeId) {
-      document.querySelectorAll('.nav-chip').forEach(chip => chip.classList.remove('selected'));
-      if (activeId) {
+    function updateSelectionRibbon(activeId, isMoon = false) {
+      document.querySelectorAll('.nav-chip').forEach(chip => {
+        chip.classList.remove('selected', 'selected-moon');
+      });
+      if (activeId && !isMoon) {
         const activeChip = document.getElementById(`chip-${activeId}`);
         if (activeChip) {
           activeChip.classList.add('selected');
@@ -1594,15 +2375,20 @@
     }
 
     /* =========================================================================
-       RAYCASTING: HOVER & CLICK DETECTION
+       RAYCASTING & INTERACTION
        ========================================================================= */
     function onPointerMove(event) {
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-      // Raycast against celestial bodies
       raycaster.setFromCamera(mouse, camera);
-      const meshesToCheck = Object.values(celestialObjects).map(o => o.mesh);
+
+      // Collect all celestial meshes (Planets + Moons)
+      const meshesToCheck = [
+        ...Object.values(celestialObjects).map(o => o.mesh),
+        ...(showMoons ? Object.values(moonObjects).map(o => o.mesh) : [])
+      ];
+
       const intersects = raycaster.intersectObjects(meshesToCheck, false);
 
       if (intersects.length > 0) {
@@ -1613,7 +2399,14 @@
           tooltip.style.display = 'block';
           tooltip.style.left = `${event.clientX}px`;
           tooltip.style.top = `${event.clientY}px`;
-          tooltip.innerHTML = `<strong>${bData.name}</strong> <span style="color:#00d2ff; font-size:11px;">(${bData.type})</span>`;
+
+          if (hit.userData.isMoon) {
+            tooltip.className = 'moon-tooltip';
+            tooltip.innerHTML = `<strong>${bData.name}</strong> <span style="color:#d8b4fe; font-size:11px;">(Moon of ${celestialObjects[bData.parentId].data.name})</span>`;
+          } else {
+            tooltip.className = '';
+            tooltip.innerHTML = `<strong>${bData.name}</strong> <span style="color:#00d2ff; font-size:11px;">(${bData.type})</span>`;
+          }
           return;
         }
       }
@@ -1623,7 +2416,6 @@
     }
 
     function onCanvasClick(event) {
-      // Ignore click if clicking over UI panels
       if (event.target.closest('.info-card') || 
           event.target.closest('.sim-controls') || 
           event.target.closest('.planet-selector-bar') ||
@@ -1632,13 +2424,16 @@
       }
 
       raycaster.setFromCamera(mouse, camera);
-      const meshesToCheck = Object.values(celestialObjects).map(o => o.mesh);
+      const meshesToCheck = [
+        ...Object.values(celestialObjects).map(o => o.mesh),
+        ...(showMoons ? Object.values(moonObjects).map(o => o.mesh) : [])
+      ];
       const intersects = raycaster.intersectObjects(meshesToCheck, false);
 
       if (intersects.length > 0) {
         const hit = intersects[0].object;
         if (hit.userData && hit.userData.data) {
-          focusOnBody(hit.userData.data.id);
+          focusOnBody(hit.userData.data.id, hit.userData.isMoon);
         }
       }
     }
@@ -1649,7 +2444,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // Start everything
+    // Launch
     window.addEventListener('DOMContentLoaded', () => {
       initThree();
       animate(performance.now());
