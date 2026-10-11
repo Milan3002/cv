@@ -135,7 +135,7 @@
         </div>
 
         <!-- Tady je to "bezpečné" tlačítko -->
-        <button id="mailBtn" class="btn-contact">Napsat e-mail</button>
+        <button id="mailBtn" type="button" class="btn-contact">✉ Napsat e-mail</button>
 
         <div class="footer">
             &copy; 2026 mityska.cz
@@ -143,11 +143,15 @@
     </div>
 
     <script>
-        // Ochrana před spamboty
-        document.getElementById('mailBtn').addEventListener('click', function() {
-            const user = "me"; // Tady si změň jméno, pokud máš jiný mail
-            const domain = "mityska.cz";
-            window.location.href = "mailto:" + user + "@" + domain;
+        // Ochrana před spamboty (ASCII kódování)
+        document.getElementById('mailBtn').addEventListener('click', () => {
+            const codes = [
+                109, 101, 64, 109, 105, 116, 121, 115,
+                107, 97, 46, 99, 122
+            ];
+
+            const email = String.fromCharCode(...codes);
+            window.location.href = `mailto:${email}`;
         });
     </script>
 
