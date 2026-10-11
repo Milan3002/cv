@@ -564,6 +564,9 @@
     <button class="btn moon-btn active" id="btn-toggle-moons" title="Show or hide moons and moon orbits">
       <span>🌕</span> <span>Moons</span>
     </button>
+    <button class="btn active" id="btn-toggle-textures" title="Toggle between real NASA photo maps and procedural textures">
+      <span>🛰️</span> <span id="textures-mode-text">NASA Maps</span>
+    </button>
     <button class="btn" id="btn-toggle-scale" title="Toggle between true realistic vs enhanced visual scale">
       <span>📐</span> <span id="scale-mode-text">Enhanced Scale</span>
     </button>
@@ -1489,7 +1492,55 @@
     let showPlanetOrbits = true;
     let showMoons = true;
     let useEnhancedScale = true;
+    let useNasaTextures = true;
     let simulationTimeDays = 0;
+
+    // CDN Texture URLs (Jerome Etienne / Planet Pixel Emporium NASA maps on jsDelivr)
+    const NASA_TEXTURE_BASE = "https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/";
+    const NASA_TEXTURE_URLS = {
+      sun: NASA_TEXTURE_BASE + "sunmap.jpg",
+      mercury: NASA_TEXTURE_BASE + "mercurymap.jpg",
+      mercuryBump: NASA_TEXTURE_BASE + "mercurybump.jpg",
+      venus: NASA_TEXTURE_BASE + "venusmap.jpg",
+      venusBump: NASA_TEXTURE_BASE + "venusbump.jpg",
+      earth: NASA_TEXTURE_BASE + "earthmap1k.jpg",
+      earthBump: NASA_TEXTURE_BASE + "earthbump1k.jpg",
+      earthSpec: NASA_TEXTURE_BASE + "earthspec1k.jpg",
+      earthClouds: NASA_TEXTURE_BASE + "earthcloudmap.jpg",
+      mars: NASA_TEXTURE_BASE + "marsmap1k.jpg",
+      marsBump: NASA_TEXTURE_BASE + "marsbump1k.jpg",
+      jupiter: NASA_TEXTURE_BASE + "jupitermap.jpg",
+      saturn: NASA_TEXTURE_BASE + "saturnmap.jpg",
+      saturnRing: NASA_TEXTURE_BASE + "saturnringcolor.jpg",
+      uranus: NASA_TEXTURE_BASE + "uranusmap.jpg",
+      uranusRing: NASA_TEXTURE_BASE + "uranusringcolour.jpg",
+      neptune: NASA_TEXTURE_BASE + "neptunemap.jpg",
+      luna: NASA_TEXTURE_BASE + "moonmap1k.jpg",
+      lunaBump: NASA_TEXTURE_BASE + "moonbump1k.jpg"
+    };
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.crossOrigin = 'anonymous';
+    const loadedTexturesCache = {};
+
+    function loadNasaTexture(url, fallbackCanvasTex) {
+      if (!url) return fallbackCanvasTex;
+      if (loadedTexturesCache[url]) return loadedTexturesCache[url];
+
+      const tex = textureLoader.load(
+        url,
+        (loadedTex) => {
+          loadedTex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+          loadedTex.needsUpdate = true;
+        },
+        undefined,
+        (err) => {
+          console.warn("CDN Texture load failed, falling back to procedural:", url, err);
+        }
+      );
+      loadedTexturesCache[url] = tex;
+      return tex;
+    }
 
     // Camera Navigation State
     let focusedTarget = null; // { type: 'planet'|'moon', id: '...' }
@@ -1782,13 +1833,27 @@
     /* =========================================================================
        BUILD CELESTIAL BODIES (SUN & PLANETS)
        ========================================================================= */
+    let earthCloudsMesh = null;
+
     function buildSolarSystem() {
       // 1. SUN
       const sunData = CELESTIAL_DATA[0];
       const sunGeo = new THREE.SphereGeometry(sunData.radius, 48, 48);
-      const sunMat = new THREE.MeshBasicMaterial({ map: createProceduralSunTexture() });
+      const proceduralSunTex = createProceduralSunTexture();
+      const realSunTex = loadNasaTexture(NASA_TEXTURE_URLS.sun, proceduralSunTex);
+
+      const sunMat = new THREE.MeshBasicMaterial({ 
+        map: useNasaTextures ? realSunTex : proceduralSunTex 
+      });
       const sunMesh = new THREE.Mesh(sunGeo, sunMat);
-      sunMesh.userData = { isCelestial: true, isMoon: false, id: sunData.id, data: sunData };
+      sunMesh.userData = { 
+        isCelestial: true, 
+        isMoon: false, 
+        id: sunData.id, 
+        data: sunData,
+        proceduralTex: proceduralSunTex,
+        realTex: realSunTex
+      };
       scene.add(sunMesh);
 
       // Sun Corona Glow
@@ -1833,33 +1898,81 @@
         const planetPivot = new THREE.Group();
         scene.add(planetPivot);
 
-        const planetGeo = new THREE.SphereGeometry(pData.radius, 36, 36);
+        const planetGeo = new THREE.SphereGeometry(pData.radius, 40, 40);
+        const proceduralTex = createProceduralPlanetTexture(pData.id, pData.color);
+        const realTexUrl = NASA_TEXTURE_URLS[pData.id];
+        const realTex = realTexUrl ? loadNasaTexture(realTexUrl, proceduralTex) : proceduralTex;
+
+        // Bump maps & Specular maps for Earth, Mars, Venus, Mercury
+        let bumpTex = null;
+        if (pData.id === 'earth') bumpTex = loadNasaTexture(NASA_TEXTURE_URLS.earthBump, null);
+        else if (pData.id === 'mars') bumpTex = loadNasaTexture(NASA_TEXTURE_URLS.marsBump, null);
+        else if (pData.id === 'mercury') bumpTex = loadNasaTexture(NASA_TEXTURE_URLS.mercuryBump, null);
+        else if (pData.id === 'venus') bumpTex = loadNasaTexture(NASA_TEXTURE_URLS.venusBump, null);
+
+        let specTex = null;
+        if (pData.id === 'earth') specTex = loadNasaTexture(NASA_TEXTURE_URLS.earthSpec, null);
+
         const planetMat = new THREE.MeshStandardMaterial({
-          map: createProceduralPlanetTexture(pData.id, pData.color),
-          roughness: 0.85,
-          metalness: 0.1
+          map: useNasaTextures ? realTex : proceduralTex,
+          bumpMap: (useNasaTextures && bumpTex) ? bumpTex : null,
+          bumpScale: pData.id === 'earth' ? 0.05 : 0.04,
+          roughnessMap: (useNasaTextures && specTex) ? specTex : null,
+          roughness: pData.id === 'earth' ? 0.6 : 0.85,
+          metalness: 0.05
         });
         const planetMesh = new THREE.Mesh(planetGeo, planetMat);
         planetMesh.castShadow = true;
         planetMesh.receiveShadow = true;
-        planetMesh.userData = { isCelestial: true, isMoon: false, id: pData.id, data: pData };
+        planetMesh.userData = { 
+          isCelestial: true, 
+          isMoon: false, 
+          id: pData.id, 
+          data: pData,
+          proceduralTex: proceduralTex,
+          realTex: realTex,
+          bumpTex: bumpTex,
+          specTex: specTex
+        };
 
         if (pData.tiltZ) planetMesh.rotation.z = pData.tiltZ;
         planetPivot.add(planetMesh);
 
-        // Optional Rings
+        // EARTH CLOUDS LAYER (Realistic rotating clouds above atmosphere)
+        if (pData.id === 'earth') {
+          const cloudGeo = new THREE.SphereGeometry(pData.radius * 1.018, 40, 40);
+          const cloudTex = loadNasaTexture(NASA_TEXTURE_URLS.earthClouds, null);
+          const cloudMat = new THREE.MeshStandardMaterial({
+            map: cloudTex,
+            transparent: true,
+            opacity: 0.75,
+            blending: THREE.NormalBlending
+          });
+          earthCloudsMesh = new THREE.Mesh(cloudGeo, cloudMat);
+          planetMesh.add(earthCloudsMesh);
+        }
+
+        // Optional Rings (Saturn, Uranus)
         if (pData.hasRings) {
           const ringGeo = new THREE.RingGeometry(pData.ringInner, pData.ringOuter, 64);
           ringGeo.rotateX(Math.PI / 2);
+          const proceduralRingTex = createProceduralRingTexture();
+          const ringUrl = pData.id === 'saturn' ? NASA_TEXTURE_URLS.saturnRing : NASA_TEXTURE_URLS.uranusRing;
+          const realRingTex = loadNasaTexture(ringUrl, proceduralRingTex);
+
           const ringMat = new THREE.MeshStandardMaterial({
-            map: createProceduralRingTexture(),
+            map: useNasaTextures ? realRingTex : proceduralRingTex,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.85,
+            opacity: 0.88,
             roughness: 0.5
           });
           const ringsMesh = new THREE.Mesh(ringGeo, ringMat);
           ringsMesh.rotation.x = 0.25;
+          ringsMesh.userData = {
+            proceduralTex: proceduralRingTex,
+            realTex: realRingTex
+          };
           planetMesh.add(ringsMesh);
         }
 
@@ -1902,16 +2015,30 @@
         moonOrbitLines.push(mOrbitLine);
 
         // Moon Mesh
-        const mGeo = new THREE.SphereGeometry(mData.radius, 24, 24);
+        const mGeo = new THREE.SphereGeometry(mData.radius, 28, 28);
+        const proceduralMoonTex = createProceduralMoonTexture(mData);
+        const realMoonTex = mData.id === 'luna' ? loadNasaTexture(NASA_TEXTURE_URLS.luna, proceduralMoonTex) : proceduralMoonTex;
+        const moonBumpTex = mData.id === 'luna' ? loadNasaTexture(NASA_TEXTURE_URLS.lunaBump, null) : null;
+
         const mMat = new THREE.MeshStandardMaterial({
-          map: createProceduralMoonTexture(mData),
-          roughness: 0.9,
+          map: useNasaTextures ? realMoonTex : proceduralMoonTex,
+          bumpMap: (useNasaTextures && moonBumpTex) ? moonBumpTex : null,
+          bumpScale: 0.04,
+          roughness: 0.88,
           metalness: 0.05
         });
         const mMesh = new THREE.Mesh(mGeo, mMat);
         mMesh.castShadow = true;
         mMesh.receiveShadow = true;
-        mMesh.userData = { isCelestial: true, isMoon: true, id: mData.id, data: mData };
+        mMesh.userData = { 
+          isCelestial: true, 
+          isMoon: true, 
+          id: mData.id, 
+          data: mData,
+          proceduralTex: proceduralMoonTex,
+          realTex: realMoonTex,
+          bumpTex: moonBumpTex
+        };
         moonGroup.add(mMesh);
 
         moonObjects[mData.id] = {
@@ -2040,6 +2167,11 @@
 
           const rotSpeed = ((Math.PI * 2) / (pData.rotationPeriodHours / 24)) * daysPassed;
           obj.mesh.rotation.y += rotSpeed * 0.08;
+
+          // Rotate Earth cloud layer slightly faster to simulate atmospheric wind drift
+          if (pData.id === 'earth' && earthCloudsMesh) {
+            earthCloudsMesh.rotation.y += rotSpeed * 0.095;
+          }
         }
 
         // Moons revolution around parent planets
@@ -2305,6 +2437,50 @@
           mObj.orbitLine.visible = showMoons;
         });
         toggleMoonsBtn.classList.toggle('active', showMoons);
+      });
+
+      // Toggle Textures (Real NASA Photos vs Procedural)
+      const toggleTexturesBtn = document.getElementById('btn-toggle-textures');
+      toggleTexturesBtn.addEventListener('click', () => {
+        useNasaTextures = !useNasaTextures;
+        document.getElementById('textures-mode-text').textContent = useNasaTextures ? 'NASA Maps' : 'Procedural';
+        toggleTexturesBtn.classList.toggle('active', useNasaTextures);
+
+        // Update Sun & Planet Materials
+        Object.values(celestialObjects).forEach(cObj => {
+          const mesh = cObj.mesh;
+          const u = mesh.userData;
+          if (u.realTex && u.proceduralTex) {
+            mesh.material.map = useNasaTextures ? u.realTex : u.proceduralTex;
+            if (u.bumpTex) mesh.material.bumpMap = useNasaTextures ? u.bumpTex : null;
+            if (u.specTex) mesh.material.roughnessMap = useNasaTextures ? u.specTex : null;
+            mesh.material.needsUpdate = true;
+          }
+
+          // Rings
+          mesh.children.forEach(child => {
+            if (child.userData && child.userData.realTex) {
+              child.material.map = useNasaTextures ? child.userData.realTex : child.userData.proceduralTex;
+              child.material.needsUpdate = true;
+            }
+          });
+        });
+
+        // Update Moon (Luna)
+        Object.values(moonObjects).forEach(mObj => {
+          const mesh = mObj.mesh;
+          const u = mesh.userData;
+          if (u.realTex && u.proceduralTex) {
+            mesh.material.map = useNasaTextures ? u.realTex : u.proceduralTex;
+            if (u.bumpTex) mesh.material.bumpMap = useNasaTextures ? u.bumpTex : null;
+            mesh.material.needsUpdate = true;
+          }
+        });
+
+        // Earth Clouds Visibility
+        if (earthCloudsMesh) {
+          earthCloudsMesh.visible = useNasaTextures;
+        }
       });
 
       // Toggle Scale
